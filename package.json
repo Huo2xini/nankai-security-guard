@@ -1,0 +1,9 @@
+﻿{
+  "name": "nankai-security-guard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "南开安全卫士响应式网页 Demo",
+  "scripts": {
+    "start": "node server.js"
+  }
+}

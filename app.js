@@ -28,16 +28,44 @@ const answers = [
   { keys: ["隐患", "上报", "流程"], text: "隐患上报建议填写隐患类型、地点、描述、图片、联系人、联系电话和紧急程度。正式版可写入飞书多维表格并同步处置状态。" },
 ];
 
-const quizQuestions = [
-  { question: "一个陌生人来到寝室，自称公寓管理服务中心老师，要收取每人 200 元宿舍押金。你应该怎么做？", options: ["配合其工作，向其交押金", "问辅导员或宿管核实，绝不能轻易交钱", "反正毕业会退，先交了再说", "主动帮他去收钱"], answer: 1, explain: "题库答案为 B。涉及收费时要先向辅导员、宿管或学校部门核实，不能轻易交钱。" },
-  { question: "接到自称警察的电话，说你涉嫌违法，需要查账户并按电话指令操作。正确做法是？", options: ["按照对方指令执行", "挂断电话并报告学校保卫部门或报警", "向其提供账号密码", "立刻转到对方提供的安全账户"], answer: 1, explain: "题库答案为 B。公检法不会通过电话要求转账或提供账户密码。" },
-  { question: "收到银行卡升级短信，需要点击链接完成实名认证，否则影响使用。正确做法是？", options: ["拨打银行官方咨询电话核实", "点开短信中的链接看看", "点击链接看看网站像不像真的", "赶紧按要求办理认证"], answer: 0, explain: "题库答案为 A。短信链接可能是钓鱼网站，应通过官方电话或官方 App 核实。" },
-  { question: "校园火灾的常见起因包括哪些？", options: ["明火引燃", "乱拉乱接电线", "使用电器不当", "以上都包括"], answer: 3, explain: "题库答案为 ABCD。明火、电线、电器和宿舍大功率电器都可能造成火灾风险。" },
-  { question: "灭火器气压表指针在什么颜色范围内通常表示可使用？", options: ["红色", "绿色", "黄色", "任何颜色"], answer: 1, explain: "题库答案为 B。绿色范围通常表示灭火器压力正常。" },
+const questionBank = [
+  { question: "一个陌生人来到寝室，自称公寓管理服务中心老师，要收取每人 200 元宿舍押金。你应该怎么做？", options: ["配合其工作，向其交押金", "问辅导员或宿管核实，绝不能轻易交钱", "反正毕业会退，先交了再说", "主动帮他去收钱"], answer: 1, explain: "涉及收费时要先向辅导员、宿管或学校部门核实，不能轻易交钱。" },
+  { question: "接到自称警察的电话，说你涉嫌违法，需要查账户并按电话指令操作。正确做法是？", options: ["按照对方指令执行", "挂断电话并报告学校保卫部门或报警", "向其提供账号密码", "立刻转到对方提供的安全账户"], answer: 1, explain: "公检法不会通过电话要求转账或提供账户密码。" },
+  { question: "收到银行卡升级短信，需要点击链接完成实名认证，否则影响使用。正确做法是？", options: ["拨打银行官方咨询电话核实", "点开短信中的链接看看", "点击链接看看网站像不像真的", "赶紧按要求办理认证"], answer: 0, explain: "短信链接可能是钓鱼网站，应通过官方电话或官方 App 核实。" },
+  { question: "校园火灾的常见起因包括哪些？", options: ["明火引燃", "乱拉乱接电线", "使用电器不当", "以上都包括"], answer: 3, explain: "明火、电线、电器和宿舍大功率电器都可能造成火灾风险。" },
+  { question: "灭火器气压表指针在什么颜色范围内通常表示可使用？", options: ["红色", "绿色", "黄色", "任何颜色"], answer: 1, explain: "绿色范围通常表示灭火器压力正常。" },
+  { question: "遇到陌生人要求扫码领取补贴或礼品，并让你填写银行卡号和验证码，正确做法是？", options: ["按要求填写", "只填写验证码", "拒绝填写并通过官方渠道核实", "让同学先试试"], answer: 2, explain: "银行卡号、验证码等敏感信息不能提供给陌生人。" },
+  { question: "宿舍内发现有人使用违规大功率电器，比较合适的做法是？", options: ["提醒停止使用并向宿管或辅导员反映", "帮忙一起使用", "只要没起火就不用管", "拍照发到网上"], answer: 0, explain: "违规大功率电器容易引发火灾，应及时提醒并通过正规渠道处理。" },
+  { question: "消防通道和安全出口应当保持什么状态？", options: ["可以临时堆放杂物", "保持畅通", "晚上可以锁闭", "只在检查时清理"], answer: 1, explain: "消防通道和安全出口必须保持畅通，不能占用、堵塞或锁闭。" },
+  { question: "收到自称客服的电话，说订单异常需要退款，并要求你下载会议软件共享屏幕，正确做法是？", options: ["立即共享屏幕", "按对方提示转账", "挂断并通过官方平台核实", "把验证码告诉对方"], answer: 2, explain: "冒充客服退款是常见诈骗，不能共享屏幕或透露验证码。" },
+  { question: "在校园内发现电动车飞线充电，应该怎么处理？", options: ["继续观察", "上报隐患并说明位置", "自己拔掉所有电线", "拍照嘲笑车主"], answer: 1, explain: "飞线充电存在火灾风险，应通过隐患上报说明位置和情况。" },
+  { question: "公共 WiFi 环境下，哪种行为更安全？", options: ["登录网银并转账", "输入所有账号密码", "避免进行支付和重要账号登录", "关闭手机锁屏密码"], answer: 2, explain: "陌生公共网络可能存在信息泄露风险，应避免重要操作。" },
+  { question: "实验室或宿舍发现酒精、汽油等易燃物品大量存放，正确做法是？", options: ["靠近闻一闻", "随意搬动", "及时提醒并报告相关管理人员", "放在阳光下晾晒"], answer: 2, explain: "易燃易爆物品应规范存放，发现隐患要及时报告。" },
+  { question: "收到陌生邮件附件，标题写着考试答案或补助名单，正确做法是？", options: ["直接打开", "转发给同学", "核实来源，不随意点击附件或链接", "输入账号密码查看"], answer: 2, explain: "陌生附件和链接可能包含钓鱼或恶意程序，应先核实来源。" },
+  { question: "遇到可疑人员在宿舍楼内推销、收费或索要个人信息，应该怎么办？", options: ["主动提供信息", "向宿管、辅导员或保卫部门反映", "帮他介绍同学", "不管不问"], answer: 1, explain: "宿舍楼内可疑推销和收费应及时向管理人员反映。" },
+  { question: "隐患上报时，哪项信息最有助于后续处置？", options: ["只写很危险", "准确地点、隐患描述、照片和联系方式", "不写地点", "只选择紧急程度"], answer: 1, explain: "准确地点、描述、照片和联系方式有助于快速核实和处置。" }
 ];
 
+const QUESTIONS_PER_ROUND = 5;
+let quizQuestions = [];
 let quizIndex = 0;
 let quizPoints = 0;
+
+function shuffleQuestions(items) {
+  const shuffled = [...items];
+  for (let index = shuffled.length - 1; index > 0; index -= 1) {
+    const swapIndex = Math.floor(Math.random() * (index + 1));
+    [shuffled[index], shuffled[swapIndex]] = [shuffled[swapIndex], shuffled[index]];
+  }
+  return shuffled;
+}
+
+function startQuizRound() {
+  quizQuestions = shuffleQuestions(questionBank).slice(0, QUESTIONS_PER_ROUND);
+  quizIndex = 0;
+  quizPoints = 0;
+  renderQuiz();
+}
 let answered = false;
 let quizFinished = false;
 
@@ -186,9 +214,7 @@ callButton.addEventListener("click", () => {
 
 nextQuestion.addEventListener("click", () => {
   if (quizFinished) {
-    quizIndex = 0;
-    quizPoints = 0;
-    renderQuiz();
+    startQuizRound();
     return;
   }
 
@@ -211,8 +237,9 @@ if (reportTime) {
   now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
   reportTime.value = now.toISOString().slice(0, 16);
 }
-renderQuiz();
+startQuizRound();
 switchTab(getInitialTab());
+
 
 
 

@@ -145,13 +145,12 @@ chatForm.addEventListener("submit", (event) => {
   window.setTimeout(() => addMessage("bot", getAnswer(question)), 350);
 });
 
-reportForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const reportData = Object.fromEntries(new FormData(reportForm).entries());
-  reportData.submittedAt = new Date().toISOString();
-  localStorage.setItem("lastSecurityReport", JSON.stringify(reportData));
-  showToast("上报已提交，感谢你的反馈");
-});
+if (reportForm) {
+  reportForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    showToast("请打开飞书表单提交隐患信息");
+  });
+}
 
 function isMobileDevice() {
   const ua = navigator.userAgent || navigator.vendor || window.opera || "";
@@ -178,11 +177,14 @@ nextQuestion.addEventListener("click", () => {
   renderQuiz();
 });
 
-const now = new Date();
-now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-reportTime.value = now.toISOString().slice(0, 16);
+if (reportTime) {
+  const now = new Date();
+  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
+  reportTime.value = now.toISOString().slice(0, 16);
+}
 renderQuiz();
 switchTab(getInitialTab());
+
 
 
 

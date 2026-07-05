@@ -70,7 +70,7 @@ h1, h2, h3, p { margin: 0; }
 .brand strong { display: block; font-size: 18px; }
 .brand small { display: block; color: var(--muted); font-size: 12px; margin-top: 2px; }
 
-.top-nav, .mobile-tabs {
+.top-nav {
   display: flex;
   gap: 8px;
   align-items: center;
@@ -294,23 +294,18 @@ label { display: grid; gap: 6px; color: #36444f; font-size: 13px; font-weight: 9
   .feature-strip { grid-template-columns: repeat(2, 1fr); }
   .workspace { padding: 16px; }
   .workspace-head { align-items: stretch; flex-direction: column; }
-  .mobile-tabs { display: grid; grid-template-columns: repeat(4, 1fr); }
-  .mobile-tabs .tab-button { padding: 0 8px; }
   .two-col { grid-template-columns: 1fr; }
 }
-
-@media (min-width: 901px) { .mobile-tabs { display: none; } }
-
 @media (max-width: 560px) {
   .header-inner, main, .site-footer { width: calc(100% - 24px); }
   .brand strong { font-size: 16px; }
   .hero-copy { padding: 22px; }
   .hero h1 { font-size: 32px; }
   .feature-strip { grid-template-columns: 1fr; }
-  .mobile-tabs { grid-template-columns: repeat(2, 1fr); }
   .field-grid, .chat-form { grid-template-columns: 1fr; }
   .site-footer { flex-direction: column; }
 }
+
 
 
 

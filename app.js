@@ -67,6 +67,7 @@ function getInitialTab() {
 }
 
 function addMessage(role, text) {
+  if (!chatWindow) return;
   const message = document.createElement("article");
   message.className = `message ${role}`;
   message.innerHTML = `<span>${role === "user" ? "我" : "南开安全卫士"}</span><p></p>`;
@@ -84,6 +85,7 @@ function getAnswer(question) {
 
 function fillChat(text) {
   switchTab("chat");
+  if (!chatInput) return;
   chatInput.value = text;
   chatInput.focus();
 }
@@ -133,17 +135,19 @@ tabs.forEach((tab) => tab.addEventListener("click", () => switchTab(tab.dataset.
 document.querySelectorAll("[data-jump-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.jumpTab)));
 document.querySelectorAll("[data-fill-chat]").forEach((button) => button.addEventListener("click", () => fillChat(button.dataset.fillChat)));
 
-chatForm.addEventListener("submit", (event) => {
-  event.preventDefault();
-  const question = chatInput.value.trim();
-  if (!question) {
-    showToast("请输入一个问题");
-    return;
-  }
-  addMessage("user", question);
-  chatInput.value = "";
-  window.setTimeout(() => addMessage("bot", getAnswer(question)), 350);
-});
+if (chatForm) {
+  chatForm.addEventListener("submit", (event) => {
+    event.preventDefault();
+    const question = chatInput.value.trim();
+    if (!question) {
+      showToast("请输入一个问题");
+      return;
+    }
+    addMessage("user", question);
+    chatInput.value = "";
+    window.setTimeout(() => addMessage("bot", getAnswer(question)), 350);
+  });
+}
 
 if (reportForm) {
   reportForm.addEventListener("submit", (event) => {
@@ -184,6 +188,7 @@ if (reportTime) {
 }
 renderQuiz();
 switchTab(getInitialTab());
+
 
 
 

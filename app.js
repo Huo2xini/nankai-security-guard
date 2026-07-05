@@ -39,6 +39,7 @@ const quizQuestions = [
 let quizIndex = 0;
 let quizPoints = 0;
 let answered = false;
+let quizFinished = false;
 
 function showToast(text) {
   toast.textContent = text;
@@ -93,11 +94,12 @@ function fillChat(text) {
 function renderQuiz() {
   const current = quizQuestions[quizIndex];
   answered = false;
+  quizFinished = false;
   quizProgress.textContent = `第 ${quizIndex + 1} / ${quizQuestions.length} 题`;
   quizScore.textContent = `得分 ${quizPoints}`;
   quizQuestion.textContent = current.question;
   quizFeedback.textContent = "请选择一个答案。";
-  nextQuestion.textContent = quizIndex === quizQuestions.length - 1 ? "重新开始" : "下一题";
+  nextQuestion.textContent = "下一题";
   quizOptions.innerHTML = "";
 
   current.options.forEach((option, index) => {
@@ -109,6 +111,17 @@ function renderQuiz() {
     button.addEventListener("click", () => chooseAnswer(index));
     quizOptions.append(button);
   });
+}
+
+function renderQuizResult() {
+  quizFinished = true;
+  answered = true;
+  quizProgress.textContent = "本轮完成";
+  quizScore.textContent = `总分 ${quizPoints}`;
+  quizQuestion.textContent = "本轮安全答题已完成";
+  quizOptions.innerHTML = "";
+  quizFeedback.textContent = `你已完成 ${quizQuestions.length} 道题，最终得分 ${quizPoints} 分。请继续保持安全意识，遇到可疑情况及时核实并联系学校相关部门。`;
+  nextQuestion.textContent = "重新开始";
 }
 
 function chooseAnswer(index) {
@@ -172,12 +185,24 @@ callButton.addEventListener("click", () => {
 });
 
 nextQuestion.addEventListener("click", () => {
-  if (quizIndex === quizQuestions.length - 1) {
+  if (quizFinished) {
     quizIndex = 0;
     quizPoints = 0;
-  } else {
-    quizIndex += 1;
+    renderQuiz();
+    return;
   }
+
+  if (!answered) {
+    showToast("请先选择一个答案");
+    return;
+  }
+
+  if (quizIndex === quizQuestions.length - 1) {
+    renderQuizResult();
+    return;
+  }
+
+  quizIndex += 1;
   renderQuiz();
 });
 
@@ -188,6 +213,7 @@ if (reportTime) {
 }
 renderQuiz();
 switchTab(getInitialTab());
+
 
 
 

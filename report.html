@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>南开安全卫士 - 隐患上报</title>
     <link rel="stylesheet" href="styles.css" />
+    <meta http-equiv="refresh" content="0; url=https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&view=vewoiUIlNk" />
   </head>
   <body data-default-tab="report">
     <header class="site-header">
@@ -105,26 +106,15 @@
             </div>
           </div>
         </section>
-
         <section class="tab-panel" id="report" aria-label="隐患上报">
-          <div class="module-grid two-col">
-            <div class="module-intro">
+          <div class="module-grid report-single">
+            <div class="report-link-card">
               <h3>隐患上报</h3>
-              <p>请按实际情况填写隐患信息。提交后系统会记录本次上报内容，便于处置跟进。</p>
-              <div class="workflow-list"><span>发现隐患</span><span>填写上报</span><span>派发处置</span><span>回传结果</span></div>
+              <p>请通过飞书表单提交校园安全隐患信息。</p>
+              <a class="primary-link-button" href="https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&view=vewoiUIlNk">打开隐患上报表单</a>
             </div>
-            <form class="report-form" id="reportForm">
-              <label>隐患类型<select name="type" required><option value="">请选择</option><option>消防安全</option><option>治安风险</option><option>交通隐患</option><option>电动车/充电</option><option>设备设施</option><option>其他</option></select></label>
-              <label>地点<input name="location" type="text" placeholder="如：八里台校区二主楼一层" required /></label>
-              <label>隐患描述<textarea name="description" rows="4" placeholder="请描述现场情况、发现时间、可能风险" required></textarea></label>
-              <div class="field-grid"><label>紧急程度<select name="urgency" required><option>一般</option><option>较急</option><option>紧急</option></select></label><label>上报时间<input id="reportTime" name="reportTime" type="datetime-local" /></label></div>
-              <label>图片<input name="image" type="file" accept="image/*" /></label>
-              <div class="field-grid"><label>联系人<input name="contactName" type="text" placeholder="姓名" /></label><label>联系电话<input name="contactPhone" type="tel" placeholder="手机号" /></label></div>
-              <button class="primary-button" type="submit">提交上报</button>
-            </form>
           </div>
         </section>
-
         <section class="tab-panel" id="help" aria-label="一键求助">
           <div class="module-grid help-single">
             <div class="help-panel"><div class="phone-visual" aria-hidden="true"><span></span></div><strong>保卫处求助电话</strong><p>022-123456</p><div class="help-note">遇到紧急情况请及时联系保卫处。</div><button class="danger-button" type="button" id="callButton">一键求助</button></div>
@@ -138,6 +128,8 @@
     <script src="app.js"></script>
   </body>
 </html>
+
+
 
 
 

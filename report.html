@@ -30,7 +30,7 @@
         <div class="hero-copy">
           <p class="eyebrow">校园安全智能服务平台</p>
           <h1>把安全问答、隐患上报和应急求助放在一个网页里</h1>
-          <p>面向学生、老师和安保人员的响应式网页 Demo。电脑端可作为工作台展示，手机端可直接用于快速查询和上报。</p>
+          <p>面向学生、老师和安保人员的校园安全服务平台。电脑端适合集中处理，手机端适合快速查询、上报和求助。</p>
           <div class="hero-actions">
             <button class="primary-button" type="button" data-jump-tab="report">上报隐患</button>
             <button class="secondary-button" type="button" data-jump-tab="chat">咨询安全问题</button>
@@ -44,17 +44,17 @@
       </section>
 
       <section class="feature-strip" aria-label="功能概览">
-        <article><span>01</span><strong>政策问答</strong><p>基于题库关键词模拟 AI 回答，后续可接入飞书智能体。</p></article>
+        <article><span>01</span><strong>政策问答</strong><p>基于安全知识题库提供反诈、消防、宿舍安全等问答服务。</p></article>
         <article><span>02</span><strong>安全答题</strong><p>抽取综合题库内容，支持判断对错、解释答案和累计得分。</p></article>
-        <article><span>03</span><strong>隐患上报</strong><p>保留可上线字段，后续可写入飞书多维表格或后台数据库。</p></article>
-        <article><span>04</span><strong>一键求助</strong><p>演示保卫处电话入口，正式版可接入通知和处置流程。</p></article>
+        <article><span>03</span><strong>隐患上报</strong><p>按校园安全处置流程采集隐患类型、地点、描述、图片和联系方式。</p></article>
+        <article><span>04</span><strong>一键求助</strong><p>提供保卫处求助电话入口，手机端可直接调起拨号界面。</p></article>
       </section>
 
       <section class="workspace">
         <div class="workspace-head">
           <div>
-            <p class="eyebrow">Demo Workspace</p>
-            <h2>功能演示</h2>
+            <p class="eyebrow">Nankai Safety Service</p>
+            <h2>在线服务</h2>
           </div>
           <div class="mobile-tabs" aria-label="移动端功能导航">
             <button class="tab-button active" type="button" data-tab="chat">问答</button>
@@ -68,7 +68,7 @@
           <div class="module-grid two-col">
             <div class="module-intro">
               <h3>政策问答</h3>
-              <p>输入校园安全问题，系统会根据综合题库中的反诈、消防、宿舍安全等内容进行模拟回答。</p>
+              <p>输入校园安全问题，系统会根据综合题库中的反诈、消防、宿舍安全等内容进行回答。</p>
               <div class="quick-prompts">
                 <button type="button" data-fill-chat="公检法诈骗">公检法诈骗</button>
                 <button type="button" data-fill-chat="银行卡验证码">银行卡验证码</button>
@@ -93,7 +93,7 @@
           <div class="module-grid two-col">
             <div class="module-intro">
               <h3>安全答题</h3>
-              <p>这里体现“题库问答环节”：从你提供的综合题库中抽取题目，用户选择答案后即时反馈。</p>
+              <p>从综合题库中抽取安全题目，用户选择答案后即时反馈。</p>
               <ul class="plain-list"><li>支持单题答题和下一题切换</li><li>答对自动计分</li><li>显示题库答案依据和安全提醒</li></ul>
             </div>
             <div class="quiz-card">
@@ -110,17 +110,17 @@
           <div class="module-grid two-col">
             <div class="module-intro">
               <h3>隐患上报</h3>
-              <p>字段按可上线版本设计。当前为演示提交，后续可以对接飞书多维表格、后端数据库和处置进度。</p>
+              <p>请按实际情况填写隐患信息。提交后系统会记录本次上报内容，便于处置跟进。</p>
               <div class="workflow-list"><span>发现隐患</span><span>填写上报</span><span>派发处置</span><span>回传结果</span></div>
             </div>
             <form class="report-form" id="reportForm">
-              <label>隐患类型<select required><option value="">请选择</option><option>消防安全</option><option>治安风险</option><option>交通隐患</option><option>电动车/充电</option><option>设备设施</option><option>其他</option></select></label>
-              <label>地点<input type="text" placeholder="如：八里台校区二主楼一层" required /></label>
-              <label>隐患描述<textarea rows="4" placeholder="请描述现场情况、发现时间、可能风险" required></textarea></label>
-              <div class="field-grid"><label>紧急程度<select required><option>一般</option><option>较急</option><option>紧急</option></select></label><label>上报时间<input id="reportTime" type="datetime-local" /></label></div>
-              <label>图片<input type="file" accept="image/*" /></label>
-              <div class="field-grid"><label>联系人<input type="text" placeholder="姓名" /></label><label>联系电话<input type="tel" placeholder="手机号" /></label></div>
-              <button class="primary-button" type="submit">演示提交</button>
+              <label>隐患类型<select name="type" required><option value="">请选择</option><option>消防安全</option><option>治安风险</option><option>交通隐患</option><option>电动车/充电</option><option>设备设施</option><option>其他</option></select></label>
+              <label>地点<input name="location" type="text" placeholder="如：八里台校区二主楼一层" required /></label>
+              <label>隐患描述<textarea name="description" rows="4" placeholder="请描述现场情况、发现时间、可能风险" required></textarea></label>
+              <div class="field-grid"><label>紧急程度<select name="urgency" required><option>一般</option><option>较急</option><option>紧急</option></select></label><label>上报时间<input id="reportTime" name="reportTime" type="datetime-local" /></label></div>
+              <label>图片<input name="image" type="file" accept="image/*" /></label>
+              <div class="field-grid"><label>联系人<input name="contactName" type="text" placeholder="姓名" /></label><label>联系电话<input name="contactPhone" type="tel" placeholder="手机号" /></label></div>
+              <button class="primary-button" type="submit">提交上报</button>
             </form>
           </div>
         </section>
@@ -129,8 +129,8 @@
           <div class="module-grid two-col">
             <div class="module-intro">
               <h3>一键求助</h3>
-              <p>电脑端会提示拨打号码，手机端会调起系统拨号界面。后续可接入飞书通知、值班人员提醒和应急处置流程。</p>
-              <div class="help-list"><article><strong>适用场景</strong><p>人身安全、火情险情、校园治安、重大设施风险等紧急情况。</p></article><article><strong>后续可接入</strong><p>飞书机器人通知、隐患工单、多维表格记录、处置进度回传。</p></article></div>
+              <p>电脑端会提示拨打号码，手机端会调起系统拨号界面。遇到紧急情况请第一时间联系保卫处。</p>
+              <div class="help-list"><article><strong>适用场景</strong><p>人身安全、火情险情、校园治安、重大设施风险等紧急情况。</p></article><article><strong>处置支持</strong><p>值班人员通知、隐患工单记录、处置进度跟踪。</p></article></div>
             </div>
             <div class="help-panel"><div class="phone-visual" aria-hidden="true"><span></span></div><strong>保卫处求助电话</strong><p>022-123456</p><button class="danger-button" type="button" id="callButton">一键求助</button></div>
           </div>
@@ -138,10 +138,12 @@
       </section>
     </main>
 
-    <footer class="site-footer"><span>南开安全卫士 Demo</span><span>响应式网页，可部署为公开网站</span></footer>
+    <footer class="site-footer"><span>南开安全卫士</span><span>校园安全服务平台</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
   </body>
 </html>
+
+
 
 

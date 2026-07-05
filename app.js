@@ -150,7 +150,20 @@ reportForm.addEventListener("submit", (event) => {
   showToast("演示提交成功：当前未接入后台和飞书多维表格");
 });
 
-callButton.addEventListener("click", () => showToast("演示拨号：022-123456，当前不会真实拨出"));
+function isMobileDevice() {
+  const ua = navigator.userAgent || navigator.vendor || window.opera || "";
+  const touchLikely = navigator.maxTouchPoints && navigator.maxTouchPoints > 1;
+  return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua) || (touchLikely && window.innerWidth <= 820);
+}
+
+callButton.addEventListener("click", () => {
+  const phoneNumber = "022-123456";
+  if (isMobileDevice()) {
+    window.location.href = `tel:${phoneNumber}`;
+    return;
+  }
+  showToast(`请使用电话拨打 ${phoneNumber}`);
+});
 
 nextQuestion.addEventListener("click", () => {
   if (quizIndex === quizQuestions.length - 1) {
@@ -167,4 +180,5 @@ now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 reportTime.value = now.toISOString().slice(0, 16);
 renderQuiz();
 switchTab(getInitialTab());
+
 

@@ -53,6 +53,19 @@ function switchTab(target) {
   document.querySelector(".workspace")?.scrollIntoView({ block: "start", behavior: "smooth" });
 }
 
+function getInitialTab() {
+  const url = new URL(window.location.href);
+  const explicitTab = url.searchParams.get("tab") || url.hash.replace("#", "");
+  const pathTabMap = {
+    "knowledge.html": "chat",
+    "report.html": "report",
+    "help.html": "help",
+  };
+  const fileName = url.pathname.split("/").pop();
+  const defaultTab = document.body.dataset.defaultTab;
+  return explicitTab || pathTabMap[fileName] || defaultTab || "chat";
+}
+
 function addMessage(role, text) {
   const message = document.createElement("article");
   message.className = `message ${role}`;
@@ -153,3 +166,5 @@ const now = new Date();
 now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 reportTime.value = now.toISOString().slice(0, 16);
 renderQuiz();
+switchTab(getInitialTab());
+

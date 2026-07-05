@@ -57,7 +57,7 @@ function getInitialTab() {
   const url = new URL(window.location.href);
   const explicitTab = url.searchParams.get("tab") || url.hash.replace("#", "");
   const pathTabMap = {
-    "knowledge.html": "chat",
+    "knowledge.html": "quiz",
     "report.html": "report",
     "help.html": "help",
   };
@@ -188,6 +188,7 @@ if (reportTime) {
 }
 renderQuiz();
 switchTab(getInitialTab());
+
 
 
 

@@ -232,7 +232,9 @@ label { display: grid; gap: 6px; color: #36444f; font-size: 13px; font-weight: 9
 .quiz-option.wrong { border-color: rgba(199, 53, 53, 0.38); background: #fff0f0; }
 .quiz-feedback { min-height: 22px; color: var(--muted); font-size: 14px; line-height: 1.5; }
 
+.help-single { max-width: 520px; margin: 0 auto; }
 .help-panel { display: grid; justify-items: center; align-content: center; gap: 12px; padding: 34px; text-align: center; }
+.help-note { color: var(--muted); font-size: 15px; line-height: 1.6; }
 .phone-visual { display: grid; width: 76px; height: 76px; place-items: center; border-radius: 50%; background: #ffecec; }
 .phone-visual span { display: block; width: 28px; height: 42px; border: 4px solid var(--red); border-radius: 10px; position: relative; }
 .phone-visual span::after { content: ""; position: absolute; bottom: 3px; left: 50%; width: 6px; height: 6px; border-radius: 50%; background: var(--red); transform: translateX(-50%); }
@@ -274,3 +276,4 @@ label { display: grid; gap: 6px; color: #36444f; font-size: 13px; font-weight: 9
   .field-grid, .chat-form { grid-template-columns: 1fr; }
   .site-footer { flex-direction: column; }
 }
+

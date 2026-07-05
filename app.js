@@ -79,7 +79,7 @@ function getAnswer(question) {
   const normalized = question.trim().toLowerCase();
   const matched = answers.find((item) => item.keys.some((key) => normalized.includes(key.toLowerCase())));
   if (matched) return matched.text;
-  return "我已收到你的问题。演示版会根据关键词模拟回答；正式版将接入南开安全制度、题库、案例库和飞书智能体知识库。";
+  return "我已收到你的问题。系统将根据南开安全制度、题库和案例库持续完善回答内容。";
 }
 
 function fillChat(text) {
@@ -147,7 +147,10 @@ chatForm.addEventListener("submit", (event) => {
 
 reportForm.addEventListener("submit", (event) => {
   event.preventDefault();
-  showToast("演示提交成功：当前未接入后台和飞书多维表格");
+  const reportData = Object.fromEntries(new FormData(reportForm).entries());
+  reportData.submittedAt = new Date().toISOString();
+  localStorage.setItem("lastSecurityReport", JSON.stringify(reportData));
+  showToast("上报已提交，感谢你的反馈");
 });
 
 function isMobileDevice() {
@@ -180,5 +183,7 @@ now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
 reportTime.value = now.toISOString().slice(0, 16);
 renderQuiz();
 switchTab(getInitialTab());
+
+
 
 

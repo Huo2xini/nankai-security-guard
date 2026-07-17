@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="zh-CN">
   <head>
     <meta charset="UTF-8" />
@@ -33,10 +33,10 @@
         </aside>
       </section>
       <section class="feature-strip" aria-label="功能概览">
-        <a class="feature-card" href="index.html"><span>01</span><strong>政策问答</strong><p>进入政策问答页面，再打开飞书机器人咨询反诈、消防、宿舍安全等问题。</p></a>
-        <a class="feature-card" href="knowledge.html"><span>02</span><strong>安全答题</strong><p>抽取综合题库内容，支持判断对错、解释答案和累计得分。</p></a>
-        <a class="feature-card" href="report.html"><span>03</span><strong>隐患上报</strong><p>进入隐患上报页面，通过飞书表单提交地点、描述、图片和联系方式。</p></a>
-        <a class="feature-card" href="help.html"><span>04</span><strong>一键求助</strong><p>进入一键求助页面，手机端可直接调起拨号界面。</p></a>
+        <a class="feature-card" href="#chat" data-tab="chat"><span>01</span><strong>政策问答</strong><p>进入政策问答页面，再打开飞书机器人咨询反诈、消防、宿舍安全等问题。</p></a>
+        <a class="feature-card" href="#quiz" data-tab="quiz"><span>02</span><strong>知识学习</strong><p>通过安全答题和三角色诈骗模拟，练习识别风险、劝阻求助和复盘判断。</p></a>
+        <a class="feature-card" href="#report" data-tab="report"><span>03</span><strong>隐患上报</strong><p>进入隐患上报页面，通过飞书表单提交地点、描述、图片和联系方式。</p></a>
+        <a class="feature-card" href="#help" data-tab="help"><span>04</span><strong>一键求助</strong><p>进入一键求助页面，手机端可直接调起拨号界面。</p></a>
       </section>
 
       <section class="workspace">
@@ -56,21 +56,74 @@
           </div>
         </section>
 
-        <section class="tab-panel" id="quiz" aria-label="安全答题">
-          <div class="module-grid two-col">
+        <section class="tab-panel" id="quiz" aria-label="知识学习">
+          <div class="module-grid learning-grid">
             <div class="module-intro">
-              <h3>安全答题</h3>
-              <p>从综合题库中抽取安全题目，用户选择答案后即时反馈。</p>
-              <ul class="plain-list"><li>支持单题答题和下一题切换</li><li>答对自动计分</li><li>显示题库答案依据和安全提醒</li></ul>
+              <h3>知识学习</h3>
+              <p>一边通过答题巩固基础安全知识，一边进入诈骗场景，选择体验者、帮助者或观察者身份做判断。</p>
+              <ul class="plain-list"><li>安全答题：即时反馈答案依据</li><li>三角色学习：体验、劝阻、观察风险</li><li>场景复盘：提炼下一次可执行的安全动作</li></ul>
             </div>
-            <div class="quiz-card">
+            <div class="learning-mode-switch" aria-label="选择知识学习方式">
+              <button class="learning-mode-button active" type="button" data-learning-mode="quiz"><span>安全答题</span><small>基础知识即时练习</small></button>
+              <button class="learning-mode-button" type="button" data-learning-mode="story"><span>三角色学习模式</span><small>进入沉浸式诈骗情景</small></button>
+            </div>
+            <div class="quiz-card learning-section active" data-learning-section="quiz">
               <div class="quiz-meta"><span id="quizProgress">第 1 题</span><strong id="quizScore">得分 0</strong></div>
               <h3 id="quizQuestion"></h3>
               <div class="quiz-options" id="quizOptions"></div>
               <p class="quiz-feedback" id="quizFeedback"></p>
               <button class="primary-button" type="button" id="nextQuestion">下一题</button>
             </div>
-          </div>
+            <div class="story-game-card learning-section" data-learning-section="story">
+              <div class="story-game-head">
+                <div>
+                  <span class="story-kicker">三角色剧情学习</span>
+                  <h3>选择一个情景，进入反诈剧情</h3>
+                  <p>点击图片场景后选择身份。角色一旦进入剧情，中途不能退出，需要走到结局后再返回。</p>
+                </div>
+                <strong id="gameStatus">选择场景</strong>
+              </div>
+
+              <div class="scene-gallery" id="scenarioGallery" aria-label="选择诈骗情景"></div>
+
+              <div class="role-stage" id="roleStage" hidden>
+                <div class="selected-scene" id="selectedScenePreview"></div>
+                <div class="role-stage-copy">
+                  <span class="story-kicker">选择身份</span>
+                  <h3 id="gameTitle">刷单返利诈骗</h3>
+                  <p id="gameBrief"></p>
+                </div>
+                <div class="role-picker" id="rolePicker" aria-label="选择学习角色">
+                  <button class="role-button active" type="button" data-role="experiencer"><span>体验者</span><small>成为当事人，在诱惑和压力里做决定</small></button>
+                  <button class="role-button" type="button" data-role="helper"><span>帮助者</span><small>陪同学核实信息，练习劝阻和止损</small></button>
+                  <button class="role-button" type="button" data-role="observer"><span>观察者</span><small>旁观骗局全过程，标记风险节点</small></button>
+                </div>
+                <button class="primary-button story-start" type="button" id="startStory">进入剧情</button>
+              </div>
+
+              <div class="story-stage" id="storyStage" hidden>
+                <div class="story-topbar">
+                  <span id="roleScenarioTag">剧情进行中</span>
+                  <strong id="gameRoleName">体验者</strong>
+                </div>
+                <div class="story-visual" id="storyVisual" aria-hidden="true"></div>
+                <div class="story-board" id="storyBoard" aria-label="剧情文本"></div>
+                <div class="thought-panel">
+                  <span>脑中想法</span>
+                  <p id="thoughtPrompt"></p>
+                  <div class="thought-choices" id="thoughtChoices"></div>
+                </div>
+                <p class="story-note" id="storyNote"></p>
+              </div>
+
+              <div class="ending-stage" id="endingStage" hidden>
+                <div class="ending-badge" id="endingBadge">学习结局</div>
+                <h3 id="endingTitle">完成学习</h3>
+                <p id="endingText"></p>
+                <div class="ending-report" id="endingReport"></div>
+                <button class="secondary-action" type="button" id="startOverStory">返回场景选择</button>
+              </div>
+            </div>          </div>
         </section>
         <section class="tab-panel" id="report" aria-label="隐患上报">
           <div class="module-grid report-single">

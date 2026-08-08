@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>南开安全卫士 - 一键求助</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-default-tab="help">
+    <header class="site-header">
+      <div class="header-inner">
+        <div class="brand" aria-label="南开安全卫士一键求助">
+          <span class="brand-mark" aria-hidden="true">南</span>
+          <span>
+            <strong>南开安全卫士</strong>
+            <small>Nankai Safety Assistant</small>
+          </span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="hero help-hero">
+        <div class="hero-copy">
+          <p class="eyebrow">校园应急联系</p>
+          <h1>一键求助</h1>
+          <p>当学生在校园内遇到紧急情况时，可通过该页面快速查看保卫处求助电话；移动端点击按钮后可直接调起拨号界面。</p>
+        </div>
+        <aside class="safety-summary" aria-label="求助提醒">
+          <span>紧急提醒</span>
+          <strong>优先保证人身安全</strong>
+          <p>如遇紧急危险，请先远离风险现场，再联系学校保卫处或相关应急部门。</p>
+        </aside>
+      </section>
+
+      <section class="workspace help-workspace">
+        <div class="workspace-head">
+          <div>
+            <p class="eyebrow">Emergency Help</p>
+            <h2>保卫处求助电话</h2>
+          </div>
+        </div>
+        <section class="tab-panel active" id="help" aria-label="一键求助">
+          <div class="module-grid help-single">
+            <div class="help-panel">
+              <div class="phone-visual" aria-hidden="true"><span></span></div>
+              <strong>保卫处求助电话</strong>
+              <p>022-123456</p>
+              <div class="help-note">当前为测试号码，正式使用前请替换为学校确认后的值班电话。</div>
+              <button class="danger-button" type="button" id="callButton">一键求助</button>
+            </div>
+          </div>
+        </section>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>南开安全卫士</span><span>一键求助</span></footer>
+    <div class="toast" id="toast" role="status" aria-live="polite"></div>
+    <script src="app.js"></script>
+  </body>
+</html>

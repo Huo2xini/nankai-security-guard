@@ -1,0 +1,707 @@
+{
+  "schemaVersion": "2026-07-campus-safety-db-v2",
+  "updatedAt": "2026-07-26",
+  "sourcePool": [
+    {
+      "name": "南开大学党委保卫部、保卫处首页",
+      "url": "https://guard.nankai.edu.cn/",
+      "types": [
+        "反诈骗",
+        "消防安全",
+        "交通安全",
+        "治安安全"
+      ]
+    },
+    {
+      "name": "南开大学保卫处安全通知栏目",
+      "url": "https://guard.nankai.edu.cn/10127/listm.htm",
+      "types": [
+        "反诈骗",
+        "消防安全",
+        "交通安全",
+        "治安安全"
+      ]
+    },
+    {
+      "name": "南开大学保卫处安全宣传与工作动态栏目",
+      "url": "https://guard.nankai.edu.cn/10128/listm.htm",
+      "types": [
+        "反诈骗",
+        "消防安全",
+        "交通安全",
+        "治安安全"
+      ]
+    },
+    {
+      "name": "南开大学网信办网络安全栏目",
+      "url": "https://wxb.nankai.edu.cn/",
+      "types": [
+        "网络安全"
+      ]
+    },
+    {
+      "name": "南开大学实验室设备处安全栏目",
+      "url": "https://ilab.nankai.edu.cn/",
+      "types": [
+        "实验室安全"
+      ]
+    },
+    {
+      "name": "公安部公开安全通报",
+      "url": "https://www.mps.gov.cn/",
+      "types": [
+        "反诈骗",
+        "交通安全",
+        "治安安全",
+        "网络安全"
+      ]
+    },
+    {
+      "name": "国家消防救援局公开提示",
+      "url": "https://www.119.gov.cn/",
+      "types": [
+        "消防安全"
+      ]
+    }
+  ],
+  "cases": [
+    {
+      "id": "fraud-part-time-rebate-001",
+      "reviewStatus": "approved",
+      "safetyType": "反诈骗",
+      "campusScene": "兼职刷单",
+      "title": "兼职群里的小额返利任务",
+      "subtitle": "动动手指，日入五百",
+      "sceneClass": "scene-task",
+      "sourceName": "南开保卫处及公安机关公开反诈提醒",
+      "sourceUrl": "https://guard.nankai.edu.cn/",
+      "sourceDate": "2026-07-19",
+      "desensitization": "已移除真实姓名、账号、金额流水、群号和联系方式，保留诈骗链条与风险点。",
+      "actor": "小林",
+      "peer": "室友",
+      "authority": "保卫处或96110",
+      "hook": "兼职群发布高收益点赞任务，并用群内返利截图制造可信感。",
+      "firstLure": "首单不需要垫付，完成后很快收到小额红包。",
+      "escalation": "随后对方要求充值做联单任务，金额逐步升高，并称必须连续完成才能返款。",
+      "pressure": "对方用名额有限、系统卡单、解冻费等说法催促继续转账。",
+      "riskyChoice": "继续充值，希望把前面的投入拿回来。",
+      "safeChoice": "停止转账，退群并向同学和学校保卫部门核实。",
+      "helperAction": "先稳定情绪，陪同当事人查看聊天记录、保存证据并联系官方渠道。",
+      "wrongHelp": "直接指责当事人太糊涂，导致对方防御心理增强。",
+      "warningSigns": [
+        "高收益低门槛",
+        "群内集中晒返利",
+        "先给小钱建立信任",
+        "联单任务和解冻费",
+        "要求脱离正规平台转账"
+      ],
+      "safeActions": [
+        "不参与刷单返利",
+        "先核实再付款",
+        "保存证据",
+        "联系保卫处、银行或96110",
+        "提醒同学群体防范"
+      ],
+      "reviewNote": "",
+      "reviewedAt": "2026-07-19",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-07-19",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "fire-dorm-electric-001",
+      "reviewStatus": "approved",
+      "safetyType": "消防安全",
+      "campusScene": "宿舍用电",
+      "title": "宿舍插排和违规电器叠加使用",
+      "subtitle": "离开前，插排还亮着",
+      "sceneClass": "scene-fire",
+      "sourceName": "南开保卫处消防安全教育与消防主题活动资料",
+      "sourceUrl": "https://guard.nankai.edu.cn/2026/0615/c10128a598341/pagem.htm",
+      "sourceDate": "2026-06-15",
+      "desensitization": "以通用宿舍情景改编，不保留具体楼宇、宿舍号和个人身份。",
+      "actor": "小林",
+      "peer": "同寝同学",
+      "authority": "宿管或保卫处",
+      "hook": "宿舍里多个充电器长期插在同一个插排上，同学临时又接入大功率电器。",
+      "firstLure": "大家觉得只是短时间使用，之前也没有出过问题。",
+      "escalation": "插排发热、线缆被被褥遮挡，离开宿舍时仍未断电。",
+      "pressure": "同学担心麻烦，不愿意立刻停止使用或上报。",
+      "riskyChoice": "继续使用，想着回来再收拾。",
+      "safeChoice": "立即断电，提醒同学停止使用违规电器并联系宿管。",
+      "helperAction": "用具体风险提醒同学，协助断电、通风、拍照记录并向宿管反馈。",
+      "wrongHelp": "觉得不是自己的电器就不管，或者只在群里吐槽。",
+      "warningSigns": [
+        "插排过载",
+        "线缆发热",
+        "充电器长期不断电",
+        "被褥覆盖电线",
+        "违规大功率电器"
+      ],
+      "safeActions": [
+        "人走断电",
+        "不使用违规电器",
+        "保持插排散热",
+        "发现发热异味立即处理",
+        "向宿管或保卫处上报隐患"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-06-15",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "traffic-ebike-charge-001",
+      "reviewStatus": "approved",
+      "safetyType": "交通安全",
+      "campusScene": "电动车充电",
+      "title": "电动车在非指定区域充电",
+      "subtitle": "图省事的一根线",
+      "sceneClass": "scene-traffic",
+      "sourceName": "南开保卫处《党委保卫部关于进一步加强校园交通管理工作的通知》",
+      "sourceUrl": "https://guard.nankai.edu.cn/2026/0428/c10127a593884/pagem.htm",
+      "sourceDate": "2026-04-28",
+      "desensitization": "以校园公共区域通用情景改编，不记录具体车牌、楼宇和个人信息。",
+      "actor": "小周",
+      "peer": "同学",
+      "authority": "保卫处交通管理人员",
+      "hook": "同学为了方便，把电动车停在楼旁并从室内接线充电。",
+      "firstLure": "他觉得只是充一会儿，不会影响别人。",
+      "escalation": "充电线穿过通道，夜间行人容易绊倒，电池异常发热也难以及时发现。",
+      "pressure": "对方担心去指定充电点麻烦，想继续充满再走。",
+      "riskyChoice": "假装没看见，让他继续充。",
+      "safeChoice": "提醒移到指定区域，必要时联系管理人员处理。",
+      "helperAction": "说明飞线充电和占道风险，陪同把车移到指定区域。",
+      "wrongHelp": "帮忙拉线或替对方遮挡检查。",
+      "warningSigns": [
+        "飞线充电",
+        "占用通道",
+        "电池发热",
+        "夜间无人看管",
+        "非指定区域停放"
+      ],
+      "safeActions": [
+        "到指定区域充电",
+        "不飞线",
+        "不占用消防和通行空间",
+        "异常发热及时断电",
+        "发现隐患及时上报"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-04-28",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "security-night-follow-001",
+      "reviewStatus": "approved",
+      "safetyType": "治安安全",
+      "campusScene": "夜间出行",
+      "title": "夜间返校路上的异常尾随感",
+      "subtitle": "别把不安压下去",
+      "sceneClass": "scene-security",
+      "sourceName": "南开保卫处校园治安安全提醒",
+      "sourceUrl": "https://guard.nankai.edu.cn/",
+      "sourceDate": "2026-07-19",
+      "desensitization": "以通用夜间出行情景改编，不保留真实路线、宿舍和人员信息。",
+      "actor": "小文",
+      "peer": "朋友",
+      "authority": "校园安保或保卫处",
+      "hook": "夜间返校时，身后有人多次保持距离跟随并在路口停留。",
+      "firstLure": "当事人担心自己多想，想快点走回宿舍。",
+      "escalation": "对方在几处转弯后仍出现在身后，周围行人减少。",
+      "pressure": "当事人怕麻烦朋友或保卫处，犹豫是否求助。",
+      "riskyChoice": "低头加速独自走偏僻小路。",
+      "safeChoice": "走向明亮人多区域，联系朋友或保卫处求助。",
+      "helperAction": "保持通话，确认位置，陪同或联系安保人员接应。",
+      "wrongHelp": "让对方别大惊小怪，继续自己走。",
+      "warningSigns": [
+        "夜间人少区域",
+        "对方多次同向跟随",
+        "路线变化后仍出现",
+        "当事人明显不安",
+        "不愿及时求助"
+      ],
+      "safeActions": [
+        "走明亮主路",
+        "联系同伴或安保",
+        "不独自进入偏僻区域",
+        "记录可疑特征",
+        "必要时报警或联系保卫处"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-07-19",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "lab-chemical-waste-001",
+      "reviewStatus": "approved",
+      "safetyType": "实验室安全",
+      "campusScene": "废液处理",
+      "title": "实验废液临时混放",
+      "subtitle": "这瓶先放一下？",
+      "sceneClass": "scene-lab",
+      "sourceName": "南开大学实验室安全管理办法",
+      "sourceUrl": "https://ilab.nankai.edu.cn/2019/0124/c11465a119066/page.htm",
+      "sourceDate": "2019-01-24",
+      "desensitization": "以实验室管理制度和通用操作风险改编，不涉及具体课题组和人员。",
+      "actor": "小林",
+      "peer": "同组同学",
+      "authority": "实验室安全负责人",
+      "hook": "实验结束后，同学想把未标识清楚的废液临时倒入旁边废液桶。",
+      "firstLure": "他觉得只是少量废液，之后统一处理就行。",
+      "escalation": "废液类别不明，容器标签缺失，可能与桶内已有液体发生反应。",
+      "pressure": "大家赶时间离开实验室，想先省一步。",
+      "riskyChoice": "直接混倒，等下次再补标签。",
+      "safeChoice": "暂停处理，核对废液类别并请安全负责人确认。",
+      "helperAction": "提醒不能混放，协助补充标签、分类暂存并记录。",
+      "wrongHelp": "默认少量无所谓，帮忙快速倒掉。",
+      "warningSigns": [
+        "废液类别不明",
+        "标签缺失",
+        "临时混放",
+        "赶时间省步骤",
+        "无人确认处置方式"
+      ],
+      "safeActions": [
+        "按类别收集",
+        "容器清晰标识",
+        "不混倒不直排",
+        "异常情况询问负责人",
+        "完成记录后离开"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2019-01-24",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "cyber-phishing-password-001",
+      "reviewStatus": "approved",
+      "safetyType": "网络安全",
+      "campusScene": "钓鱼链接",
+      "title": "假冒统一身份认证的邮件",
+      "subtitle": "账号将被停用？",
+      "sceneClass": "scene-cyber",
+      "sourceName": "南开网信办《关于钓鱼邮件防范的紧急通知》",
+      "sourceUrl": "https://wxb.nankai.edu.cn/info/1074/1704.htm",
+      "sourceDate": "2025-06-30",
+      "desensitization": "以通用钓鱼邮件情景改编，不保留真实邮件地址、链接和账号。",
+      "actor": "小周",
+      "peer": "同学",
+      "authority": "网信办或学校官方服务台",
+      "hook": "邮箱收到账号异常提醒，要求点击链接重新验证统一身份认证信息。",
+      "firstLure": "邮件标题写着限时处理，否则影响校园服务使用。",
+      "escalation": "页面样式接近学校登录页，但网址域名异常，还要求填写验证码。",
+      "pressure": "对方用倒计时和账号停用制造焦虑。",
+      "riskyChoice": "按页面要求输入账号、密码和验证码。",
+      "safeChoice": "关闭链接，通过学校官网入口或网信办渠道核实。",
+      "helperAction": "提醒核对域名，不输入验证码，协助修改密码并上报可疑邮件。",
+      "wrongHelp": "认为页面长得像学校系统就帮忙填写。",
+      "warningSigns": [
+        "陌生邮件链接",
+        "非官方域名",
+        "限时停用威胁",
+        "索要验证码",
+        "页面仿冒统一认证"
+      ],
+      "safeActions": [
+        "不点陌生链接",
+        "核对官方域名",
+        "验证码不外泄",
+        "从官网入口登录",
+        "发现钓鱼邮件及时上报"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2025-06-30",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "draft-fraud-scholarship-001",
+      "reviewStatus": "draft",
+      "safetyType": "反诈骗",
+      "campusScene": "奖学金申报",
+      "title": "假冒奖学金申报入口的信息收集",
+      "subtitle": "补录材料，逾期视为放弃？",
+      "sceneClass": "scene-task",
+      "sourceName": "南开保卫处与公安机关公开反诈提醒综合改编",
+      "sourceUrl": "https://guard.nankai.edu.cn/",
+      "sourceDate": "2026-07-19",
+      "desensitization": "已移除真实学院、姓名、账号、链接和联系方式，保留风险链条与处置要点。",
+      "actor": "小林",
+      "peer": "同学",
+      "authority": "辅导员、学院官网或保卫处",
+      "hook": "班级群里有人转发奖学金补录链接，要求填写身份证、银行卡和验证码。",
+      "firstLure": "页面写着名额即将关闭，填完即可优先审核。",
+      "escalation": "对方继续索要验证码，并提醒不要重复提交以免影响资格。",
+      "pressure": "限时、资格取消、补录名额等话术制造紧迫感。",
+      "riskyChoice": "直接填写个人信息和验证码。",
+      "safeChoice": "关闭链接，通过学院官网或辅导员核实。",
+      "helperAction": "提醒先核验官方入口，协助保存链接截图并上报。",
+      "wrongHelp": "只转发给更多同学提醒大家赶紧填。",
+      "warningSigns": [
+        "非官方链接",
+        "索要银行卡",
+        "索要验证码",
+        "限时资格威胁"
+      ],
+      "safeActions": [
+        "从官网入口办理",
+        "验证码不外泄",
+        "向学院或保卫处核实",
+        "保存证据"
+      ],
+      "reviewNote": "",
+      "reviewedAt": "2026-07-19",
+      "updatedAt": "2026-07-19",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-07-19",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "draft-security-lost-item-001",
+      "reviewStatus": "draft",
+      "safetyType": "治安安全",
+      "campusScene": "物品遗失",
+      "title": "图书馆座位上的无人看管物品",
+      "subtitle": "只是离开十分钟？",
+      "sceneClass": "scene-security",
+      "sourceName": "南开保卫处校园治安安全提醒综合改编",
+      "sourceUrl": "https://guard.nankai.edu.cn/",
+      "sourceDate": "2026-07-19",
+      "desensitization": "待完善：需确认不包含真实馆区、座位号、失主身份和监控信息。",
+      "actor": "小文",
+      "peer": "朋友",
+      "authority": "图书馆服务台或保卫处",
+      "hook": "同学在图书馆用电脑和证件占座，离开很久没有返回。",
+      "firstLure": "大家都这样做，短时间离开似乎没问题。",
+      "escalation": "贵重物品长时间无人看管，周围人员流动频繁。",
+      "pressure": "当事人觉得带走电脑麻烦，也担心座位被占。",
+      "riskyChoice": "继续把物品留在原位。",
+      "safeChoice": "随身带走贵重物品，必要时请服务台协助。",
+      "helperAction": "提醒朋友收好贵重物品，并告知遗失后应及时联系服务台和保卫处。",
+      "wrongHelp": "帮朋友继续看包但自己也离开。",
+      "warningSigns": [
+        "贵重物品无人看管",
+        "人员流动大",
+        "证件暴露",
+        "长时间离开"
+      ],
+      "safeActions": [
+        "贵重物品随身带走",
+        "不使用证件占座",
+        "发现遗失及时上报",
+        "联系服务台"
+      ],
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "collectedAt": "2026-07-19",
+      "duplicateCheck": {
+        "status": "seeded",
+        "score": 0,
+        "matchedCaseId": "",
+        "checkedAt": "2026-07-19"
+      }
+    },
+    {
+      "id": "case-e6b688e998b2e5ae89e5",
+      "reviewStatus": "draft",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "sourceName": "南开大学党委保卫部、保卫处",
+      "sourceUrl": "https://guard.nankai.edu.cn/2026/0615/c10128a598341/page.htm",
+      "sourceDate": "2026-07-25",
+      "collectedAt": "2026-07-25",
+      "safetyType": "消防安全",
+      "campusScene": "待分类情景",
+      "title": "南开大学金融学院举办消防安全主题活动",
+      "subtitle": "官方来源自动采集",
+      "sceneClass": "scene-task",
+      "desensitization": "待完善：需由编辑员完成信息脱敏说明。",
+      "actor": "同学",
+      "peer": "同学",
+      "authority": "学校相关部门",
+      "hook": "官方来源提到“南开大学金融学院举办消防安全主题活动”，需由编辑员整理为校园安全情景。",
+      "firstLure": "",
+      "escalation": "待编辑员补充风险升级过程。",
+      "pressure": "",
+      "riskyChoice": "",
+      "safeChoice": "",
+      "helperAction": "",
+      "wrongHelp": "",
+      "warningSigns": [
+        "官方来源提示风险",
+        "需进一步提炼风险信号",
+        "需完成信息脱敏"
+      ],
+      "safeActions": [
+        "查看官方来源",
+        "完成信息脱敏",
+        "补充处置建议"
+      ],
+      "duplicateCheck": {
+        "status": "unique",
+        "score": 0.0136,
+        "matchedCaseId": "fire-dorm-electric-001",
+        "reason": "text-similarity",
+        "checkedAt": "2026-07-25"
+      }
+    },
+    {
+      "id": "case-e7bd91e7bb9ce5ae89e5",
+      "reviewStatus": "draft",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "sourceName": "南开大学党委网络安全和信息化办公室",
+      "sourceUrl": "https://wxb.nankai.edu.cn/info/1074/1698.htm",
+      "sourceDate": "2026-07-25",
+      "collectedAt": "2026-07-25",
+      "safetyType": "网络安全",
+      "campusScene": "待分类情景",
+      "title": "2025-07 28 关于“南开大学”企业微信的重要提示 各位师生： 近期接师生反映，收到微信平台推送的 “加入南开大学企业微信” 邀请通知。经核实，我校企业微信“南开大学”已于2020年正式停用，所有校内协同服务均已迁移至飞书平台，且此后未再注册或启用任何企业微信账号。当前微信端相关邀请系第三方平台自动推广行为，非学校官方发起，与我校无任何关联，请各位师生请勿点击此类链接或进行相关操作，避免个人信息泄露。 特此提醒，敬请周知。",
+      "subtitle": "官方来源自动采集",
+      "sceneClass": "scene-task",
+      "desensitization": "待完善：需由编辑员完成信息脱敏说明。",
+      "actor": "同学",
+      "peer": "同学",
+      "authority": "学校相关部门",
+      "hook": "官方来源提到“2025-07 28 关于“南开大学”企业微信的重要提示 各位师生： 近期接师生反映，收到微信平台推送的 “加入南开大学企业微信” 邀请通知。经核实，我校企业微信“南开大学”已于2020年正式停用，所有校内协同服务均已迁移至飞书平台，且此后未再注册或启用任何企业微信账号。当前微信端相关邀请系第三方平台自动推广行为，非学校官方发起，与我校无任何关联，请各位师生请勿点击此类链接或进行相关操作，避免个人信息泄露。 特此提醒，敬请周知。”，需由编辑员整理为校园安全情景。",
+      "firstLure": "",
+      "escalation": "待编辑员补充风险升级过程。",
+      "pressure": "",
+      "riskyChoice": "",
+      "safeChoice": "",
+      "helperAction": "",
+      "wrongHelp": "",
+      "warningSigns": [
+        "官方来源提示风险",
+        "需进一步提炼风险信号",
+        "需完成信息脱敏"
+      ],
+      "safeActions": [
+        "查看官方来源",
+        "完成信息脱敏",
+        "补充处置建议"
+      ],
+      "duplicateCheck": {
+        "status": "unique",
+        "score": 0.284,
+        "matchedCaseId": "case-e6b688e998b2e5ae89e5",
+        "reason": "text-similarity",
+        "checkedAt": "2026-07-25"
+      }
+    },
+    {
+      "id": "case-e7bd91e7bb9ce5ae89e5-2",
+      "reviewStatus": "draft",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "sourceName": "南开大学党委网络安全和信息化办公室",
+      "sourceUrl": "https://wxb.nankai.edu.cn/info/1074/1701.htm",
+      "sourceDate": "2026-07-25",
+      "collectedAt": "2026-07-25",
+      "safetyType": "网络安全",
+      "campusScene": "待分类情景",
+      "title": "2025-06 23 关于规范使用VPN类软件的温馨提示 近期，学校经网络安全监测发现，有个别师生因下载使用“翻墙”类恶意VPN软件（如快连VPN等），导致个人电脑感染病毒木马，出现终端被控、数据外泄，且利用受害人信息以社工方式攻击他人等情况。这不仅对个人信息安全造成严重威胁，也给校园网络的稳定运行带来诸多隐患。为营造安全、稳定、有序的校园网络环境，共同守护大家的信息安全，请大家务必严格遵守《中华人民共和国计算机信息网络国际联网管理暂行规定》要求，合法合...",
+      "subtitle": "官方来源自动采集",
+      "sceneClass": "scene-task",
+      "desensitization": "待完善：需由编辑员完成信息脱敏说明。",
+      "actor": "同学",
+      "peer": "同学",
+      "authority": "学校相关部门",
+      "hook": "官方来源提到“2025-06 23 关于规范使用VPN类软件的温馨提示 近期，学校经网络安全监测发现，有个别师生因下载使用“翻墙”类恶意VPN软件（如快连VPN等），导致个人电脑感染病毒木马，出现终端被控、数据外泄，且利用受害人信息以社工方式攻击他人等情况。这不仅对个人信息安全造成严重威胁，也给校园网络的稳定运行带来诸多隐患。为营造安全、稳定、有序的校园网络环境，共同守护大家的信息安全，请大家务必严格遵守《中华人民共和国计算机信息网络国际联网管理暂行规定》要求，合法合...”，需由编辑员整理为校园安全情景。",
+      "firstLure": "",
+      "escalation": "待编辑员补充风险升级过程。",
+      "pressure": "",
+      "riskyChoice": "",
+      "safeChoice": "",
+      "helperAction": "",
+      "wrongHelp": "",
+      "warningSigns": [
+        "官方来源提示风险",
+        "需进一步提炼风险信号",
+        "需完成信息脱敏"
+      ],
+      "safeActions": [
+        "查看官方来源",
+        "完成信息脱敏",
+        "补充处置建议"
+      ],
+      "duplicateCheck": {
+        "status": "unique",
+        "score": 0.2444,
+        "matchedCaseId": "case-e6b688e998b2e5ae89e5",
+        "reason": "text-similarity",
+        "checkedAt": "2026-07-25"
+      }
+    },
+    {
+      "id": "case-e7bd91e7bb9ce5ae89e5-3",
+      "reviewStatus": "draft",
+      "sourceType": "official",
+      "sourceAuthority": "nankai",
+      "sourceName": "南开大学党委网络安全和信息化办公室",
+      "sourceUrl": "https://wxb.nankai.edu.cn/info/1144/1749.htm",
+      "sourceDate": "2026-07-25",
+      "collectedAt": "2026-07-25",
+      "safetyType": "网络安全",
+      "campusScene": "待分类情景",
+      "title": "计算平台科 关于我校eduroam服务的通知 我校eduroam自2018年上线以来为本校师生出访和外校交流访问提供了便捷的无线漫游认证服务。近年来原eduroam系统因维保到期失效，我办在南开大学“数字南开基础网络接入认证服务”招标中将此项服务内容一并纳入并已完成采购。经过重新部署以及联合调试，eduroam服务已于2025年11月正式恢复，我校师生出访其他任意有eduroam无线覆盖的机构均可登录使用。eduroam服务用户名为“统一身份认证账号@nankai.edu.cn”；密码为统一身份认... Date 2026-03-11",
+      "subtitle": "官方来源自动采集",
+      "sceneClass": "scene-task",
+      "desensitization": "待完善：需由编辑员完成信息脱敏说明。",
+      "actor": "同学",
+      "peer": "同学",
+      "authority": "学校相关部门",
+      "hook": "官方来源提到“计算平台科 关于我校eduroam服务的通知 我校eduroam自2018年上线以来为本校师生出访和外校交流访问提供了便捷的无线漫游认证服务。近年来原eduroam系统因维保到期失效，我办在南开大学“数字南开基础网络接入认证服务”招标中将此项服务内容一并纳入并已完成采购。经过重新部署以及联合调试，eduroam服务已于2025年11月正式恢复，我校师生出访其他任意有eduroam无线覆盖的机构均可登录使用。eduroam服务用户名为“统一身份认证账号@nankai.edu.cn”；密码为统一身份认... Date 2026-03-11”，需由编辑员整理为校园安全情景。",
+      "firstLure": "",
+      "escalation": "待编辑员补充风险升级过程。",
+      "pressure": "",
+      "riskyChoice": "",
+      "safeChoice": "",
+      "helperAction": "",
+      "wrongHelp": "",
+      "warningSigns": [
+        "官方来源提示风险",
+        "需进一步提炼风险信号",
+        "需完成信息脱敏"
+      ],
+      "safeActions": [
+        "查看官方来源",
+        "完成信息脱敏",
+        "补充处置建议"
+      ],
+      "duplicateCheck": {
+        "status": "unique",
+        "score": 0.2509,
+        "matchedCaseId": "case-e6b688e998b2e5ae89e5",
+        "reason": "text-similarity",
+        "checkedAt": "2026-07-25"
+      }
+    }
+  ],
+  "collection": {
+    "lastRun": {
+      "date": "2026-07-26",
+      "trigger": "manual",
+      "startedAt": "2026-07-26T10:06:23.936Z",
+      "startedAtText": "2026-07-26 18:06:23",
+      "scanned": 26,
+      "created": 0,
+      "duplicate": 26,
+      "invalid": 0,
+      "sourceCount": 7,
+      "sources": [
+        {
+          "name": "南开大学党委保卫部、保卫处首页",
+          "url": "https://guard.nankai.edu.cn/",
+          "scanned": 10,
+          "created": 0,
+          "duplicate": 10,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "南开大学保卫处安全通知栏目",
+          "url": "https://guard.nankai.edu.cn/10127/listm.htm",
+          "scanned": 2,
+          "created": 0,
+          "duplicate": 2,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "南开大学保卫处安全宣传与工作动态栏目",
+          "url": "https://guard.nankai.edu.cn/10128/listm.htm",
+          "scanned": 2,
+          "created": 0,
+          "duplicate": 2,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "南开大学网信办网络安全栏目",
+          "url": "https://wxb.nankai.edu.cn/",
+          "scanned": 12,
+          "created": 0,
+          "duplicate": 12,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "南开大学实验室设备处安全栏目",
+          "url": "https://ilab.nankai.edu.cn/",
+          "scanned": 0,
+          "created": 0,
+          "duplicate": 0,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "公安部公开安全通报",
+          "url": "https://www.mps.gov.cn/",
+          "scanned": 0,
+          "created": 0,
+          "duplicate": 0,
+          "invalid": 0,
+          "error": ""
+        },
+        {
+          "name": "国家消防救援局公开提示",
+          "url": "https://www.119.gov.cn/",
+          "scanned": 0,
+          "created": 0,
+          "duplicate": 0,
+          "invalid": 0,
+          "error": ""
+        }
+      ],
+      "errors": [],
+      "finishedAt": "2026-07-26T10:06:24.877Z",
+      "finishedAtText": "2026-07-26 18:06:24"
+    },
+    "schedule": "每天 00:00 自动采集，编辑员可手动立即采集",
+    "timezone": "Asia/Shanghai",
+    "nextRunAt": "2026-07-26T16:00:00.000Z",
+    "nextRunAtText": "2026-07-27 00:00:00"
+  }
+}

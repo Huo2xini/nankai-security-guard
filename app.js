@@ -1,11 +1,6 @@
 const tabs = document.querySelectorAll(".tab-button");
 const featureCards = document.querySelectorAll(".feature-card[data-tab]");
 const panels = document.querySelectorAll(".tab-panel");
-const chatForm = document.querySelector("#chatForm");
-const chatInput = document.querySelector("#chatInput");
-const chatWindow = document.querySelector("#chatWindow");
-const reportForm = document.querySelector("#reportForm");
-const reportTime = document.querySelector("#reportTime");
 const toast = document.querySelector("#toast");
 const callButton = document.querySelector("#callButton");
 const quizProgress = document.querySelector("#quizProgress");
@@ -74,7 +69,7 @@ const questionBank = [
 
 const roleLabels = { experiencer: "体验者", helper: "帮助者", observer: "观察者" };
 
-const scamScenarios = [
+const fallbackScenarios = [
   {
     id: "task",
     label: "刷单返利诈骗",
@@ -243,6 +238,135 @@ const scamScenarios = [
   },
 ];
 
+let scamScenarios = fallbackScenarios;
+
+const sceneClassBySafetyType = {
+  "反诈骗": "scene-task",
+  "消防安全": "scene-fire",
+  "交通安全": "scene-traffic",
+  "治安安全": "scene-security",
+  "实验室安全": "scene-lab",
+  "网络安全": "scene-cyber",
+};
+
+function caseList(items) {
+  return Array.isArray(items) && items.length ? items : ["识别风险", "暂停操作", "向官方渠道核实"];
+}
+
+function buildScenarioFromCase(item, index) {
+  const warningSigns = caseList(item.warningSigns);
+  const safeActions = caseList(item.safeActions);
+  const actor = item.actor || "同学";
+  const peer = item.peer || "同学";
+  const authority = item.authority || "学校相关部门";
+  const sceneClass = item.sceneClass || sceneClassBySafetyType[item.safetyType] || "scene-task";
+  const safetyTag = `${item.safetyType || "校园安全"} · ${item.campusScene || "典型情景"}`;
+  const sourceLine = item.sourceName ? `来源：${item.sourceName}，已脱敏改编。` : "来源于审核通过的校园安全案例，已脱敏改编。";
+
+  return {
+    id: item.id || `case-${index}`,
+    label: item.title || item.campusScene || "校园安全案例",
+    subtitle: item.subtitle || item.campusScene || "真实案例改编",
+    sceneClass,
+    tag: safetyTag,
+    brief: `${item.hook || "这是一个校园安全案例。"} ${sourceLine}`,
+    roles: {
+      experiencer: {
+        start: "start",
+        nodes: {
+          start: {
+            lines: [["系统", item.hook || "你遇到了一个看似普通的校园安全情景。"], [actor, item.firstLure || "这件事看起来不算严重，先按习惯处理也许没问题。"]],
+            prompt: "你正在现场，需要马上做出判断。",
+            thoughts: [[item.riskyChoice || "先按原计划继续。", "escalate"], [item.safeChoice || "先停下来核实。", "safeExit"]],
+          },
+          escalate: {
+            lines: [["系统", item.escalation || "风险开始升级，情况比最初看起来更复杂。"], [actor, item.pressure || "现在有点压力，但继续下去似乎更省事。"]],
+            prompt: "你已经感到不对劲，下一步怎么办？",
+            thoughts: [["继续推进，先把眼前的事处理完。", "incident"], [`问问${peer}，并联系${authority}核实。`, "askPeer"]],
+          },
+          askPeer: {
+            lines: [[peer, `我觉得这里至少有这些风险：${warningSigns.slice(0, 2).join("、")}。`], ["系统", `建议动作：${safeActions.slice(0, 2).join("、")}。`]],
+            prompt: "你愿意及时止损并按规范处理吗？",
+            thoughts: [[item.safeChoice || "停止风险操作并上报。", "safeHelped"], ["还是先等等，别把事情弄复杂。", "incident"]],
+          },
+        },
+        endings: {
+          safeExit: ["安全结局", "你在风险扩大前暂停操作，并通过官方渠道核实，避免了后续损失或事故。", safeActions.slice(0, 4)],
+          safeHelped: ["及时处置结局", "你听取提醒并采取规范处置，把一次危险苗头转化成了可复盘的安全经验。", safeActions.slice(0, 4)],
+          incident: ["风险发生结局", "你忽视了早期信号，风险继续扩大。复盘显示，关键节点本可以更早暂停和求助。", warningSigns.slice(0, 4)],
+        },
+      },
+      helper: {
+        start: "start",
+        nodes: {
+          start: {
+            lines: [[actor, item.escalation || "我现在遇到点情况，但应该能处理。"], ["你", `你注意到：${warningSigns.slice(0, 2).join("、")}。`]],
+            prompt: "作为帮助者，你第一句话怎么说更合适？",
+            thoughts: [[item.wrongHelp || "直接批评对方不注意安全。", "failed"], [item.helperAction || "先稳定对方，再一起核实处理。", "check"]],
+          },
+          check: {
+            lines: [["你", item.helperAction || "我们先停下来，一起核实信息和现场风险。"], [authority, `建议立即执行：${safeActions.slice(0, 3).join("、")}。`]],
+            prompt: "确认风险后，你还要不要陪同完成后续处理？",
+            thoughts: [["继续陪同处理、记录并提醒周围同学。", "success"], ["风险暂时停止了，后面让对方自己处理。", "partial"]],
+          },
+        },
+        endings: {
+          failed: ["帮助受阻", "过度指责让当事人更难接受提醒，风险没有被及时阻断。", ["先共情", "再核实", "最后给出具体动作"]],
+          success: ["成功帮助结局", "你用稳定、具体、可执行的方式帮助当事人完成处置，并把风险提醒扩散给相关同学。", safeActions.slice(0, 4)],
+          partial: ["部分帮助结局", "你阻止了眼前风险，但缺少记录、上报和复盘，类似风险仍可能再次出现。", ["完成记录", "及时上报", "提醒同伴"]],
+        },
+      },
+      observer: {
+        start: "start",
+        nodes: {
+          start: {
+            lines: [["回放", item.hook || "案例开始于一个看似普通的校园场景。"], ["来源", sourceLine]],
+            prompt: "第一个值得警惕的信号是什么？",
+            thoughts: [[warningSigns[0] || "出现异常风险信号。", "detail"], ["看起来很常见，暂时不用管。", "hintFirst"]],
+          },
+          hintFirst: {
+            lines: [["提示", `此类案例的早期信号通常包括：${warningSigns.slice(0, 2).join("、")}。`]],
+            prompt: "重新标记风险信号。",
+            thoughts: [[warningSigns[0] || "出现异常风险信号。", "detail"]],
+          },
+          detail: {
+            lines: [["回放", item.escalation || "随后风险继续扩大。"], ["提示", `关键处置动作包括：${safeActions.slice(0, 2).join("、")}。`]],
+            prompt: "这个案例最应该记住的处置原则是什么？",
+            thoughts: [[safeActions[0] || "暂停并核实。", "report"], ["等事情结束后再说。", "hintAction"]],
+          },
+          hintAction: {
+            lines: [["提示", "校园安全风险要在早期节点处理，拖延往往会放大后果。"]],
+            prompt: "重新选择处置原则。",
+            thoughts: [[safeActions[0] || "暂停并核实。", "report"]],
+          },
+        },
+        endings: {
+          report: ["学习结局", "你完成了案例拆解，能够识别关键风险信号，并说出可执行的安全动作。", [...warningSigns.slice(0, 2), ...safeActions.slice(0, 2)]],
+        },
+      },
+    },
+  };
+}
+
+async function loadSafetyCaseScenarios() {
+  if (!scenarioTabs || !window.fetch) return;
+  const sources = ["/api/cases?status=approved", "data/safety-cases.json"];
+  for (const source of sources) {
+    try {
+      const response = await fetch(source, { cache: "no-store" });
+      if (!response.ok) throw new Error("案例库读取失败");
+      const library = await response.json();
+      const approvedCases = Array.isArray(library.cases) ? library.cases.filter((item) => item.reviewStatus === "approved") : [];
+      const generatedScenarios = approvedCases.map(buildScenarioFromCase);
+      if (generatedScenarios.length) {
+        scamScenarios = generatedScenarios;
+        return;
+      }
+    } catch (error) {
+      console.warn("案例库来源不可用", source, error);
+    }
+  }
+}
 let activeRole = "experiencer";
 let activeScenarioIndex = 0;
 let activeStoryNode = "start";
@@ -295,37 +419,13 @@ function getInitialTab() {
   const explicitTab = url.searchParams.get("tab") || url.hash.replace("#", "");
   const pathTabMap = {
     "knowledge.html": "quiz",
-    "report.html": "report",
     "help.html": "help",
   };
   const fileName = url.pathname.split("/").pop();
   const defaultTab = document.body.dataset.defaultTab;
-  return explicitTab || pathTabMap[fileName] || defaultTab || "chat";
+  return explicitTab || pathTabMap[fileName] || defaultTab || "quiz";
 }
 
-function addMessage(role, text) {
-  if (!chatWindow) return;
-  const message = document.createElement("article");
-  message.className = `message ${role}`;
-  message.innerHTML = `<span>${role === "user" ? "我" : "南开安全卫士"}</span><p></p>`;
-  message.querySelector("p").textContent = text;
-  chatWindow.append(message);
-  chatWindow.scrollTop = chatWindow.scrollHeight;
-}
-
-function getAnswer(question) {
-  const normalized = question.trim().toLowerCase();
-  const matched = answers.find((item) => item.keys.some((key) => normalized.includes(key.toLowerCase())));
-  if (matched) return matched.text;
-  return "我已收到你的问题。系统将根据南开安全制度、题库和案例库持续完善回答内容。";
-}
-
-function fillChat(text) {
-  switchTab("chat");
-  if (!chatInput) return;
-  chatInput.value = text;
-  chatInput.focus();
-}
 
 function renderQuiz() {
   const current = quizQuestions[quizIndex];
@@ -547,6 +647,23 @@ function advanceStory(next) {
   renderRoleSimulation();
 }
 
+async function recordLearningCompletion(endingKey) {
+  const scenario = currentScenario();
+  try {
+    await fetch("/api/learning/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        caseId: scenario.id,
+        scenarioTitle: scenario.label,
+        role: activeRole,
+        endingKey
+      }),
+    });
+  } catch (error) {
+    console.warn("学习记录保存失败", error);
+  }
+}
 function renderEnding(endingKey) {
   const [title, text, report] = currentRoleStory().endings[endingKey];
   endingBadge.textContent = roleLabels[activeRole];
@@ -554,6 +671,7 @@ function renderEnding(endingKey) {
   endingText.textContent = text;
   endingReport.innerHTML = report.map((item) => `<span>${item}</span>`).join("");
   setStoryPhase("ending");
+  recordLearningCompletion(endingKey);
 }
 
 function initRoleSimulation() {
@@ -581,28 +699,7 @@ featureCards.forEach((card) => card.addEventListener("click", (event) => {
 }));
 learningModeButtons.forEach((button) => button.addEventListener("click", () => switchLearningMode(button.dataset.learningMode)));
 document.querySelectorAll("[data-jump-tab]").forEach((button) => button.addEventListener("click", () => switchTab(button.dataset.jumpTab)));
-document.querySelectorAll("[data-fill-chat]").forEach((button) => button.addEventListener("click", () => fillChat(button.dataset.fillChat)));
 
-if (chatForm) {
-  chatForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    const question = chatInput.value.trim();
-    if (!question) {
-      showToast("请输入一个问题");
-      return;
-    }
-    addMessage("user", question);
-    chatInput.value = "";
-    window.setTimeout(() => addMessage("bot", getAnswer(question)), 350);
-  });
-}
-
-if (reportForm) {
-  reportForm.addEventListener("submit", (event) => {
-    event.preventDefault();
-    showToast("请打开飞书表单提交隐患信息");
-  });
-}
 
 function isMobileDevice() {
   const ua = navigator.userAgent || navigator.vendor || window.opera || "";
@@ -639,13 +736,8 @@ if (nextQuestion) nextQuestion.addEventListener("click", () => {
   renderQuiz();
 });
 
-if (reportTime) {
-  const now = new Date();
-  now.setMinutes(now.getMinutes() - now.getTimezoneOffset());
-  reportTime.value = now.toISOString().slice(0, 16);
-}
 if (quizQuestion && quizOptions) startQuizRound();
-initRoleSimulation();
+loadSafetyCaseScenarios().finally(initRoleSimulation);
 switchTab(getInitialTab(), false);
 
 

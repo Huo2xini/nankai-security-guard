@@ -9,156 +9,53 @@
   <body data-default-tab="help">
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="index.html" aria-label="南开安全卫士首页">
-          <span class="brand-mark" aria-hidden="true">卫</span>
+        <div class="brand" aria-label="南开安全卫士一键求助">
+          <span class="brand-mark" aria-hidden="true">南</span>
           <span>
             <strong>南开安全卫士</strong>
             <small>Nankai Safety Assistant</small>
           </span>
-        </a>
+        </div>
       </div>
     </header>
 
     <main>
-      <section class="hero">
+      <section class="hero help-hero">
         <div class="hero-copy">
-          <p class="eyebrow">校园安全智能服务平台</p>
-          <h1>把安全问答、隐患上报和应急求助放在一个网页里</h1>
-          <p>面向师生的校园安全服务平台，支持安全知识查询、隐患上报和一键求助。</p>
+          <p class="eyebrow">校园应急联系</p>
+          <h1>一键求助</h1>
+          <p>当学生在校园内遇到紧急情况时，可通过该页面快速查看保卫处求助电话；移动端点击按钮后可直接调起拨号界面。</p>
         </div>
-        <aside class="safety-summary" aria-label="安全提醒">
-          <span>今日提醒</span>
-          <strong>谨防陌生链接、冒充客服和“安全账户”诈骗</strong>
-          <p>遇到不明收费、短信链接、扫码认证、电话转账等情况，请先向学校或官方渠道核实。</p>
+        <aside class="safety-summary" aria-label="求助提醒">
+          <span>紧急提醒</span>
+          <strong>优先保证人身安全</strong>
+          <p>如遇紧急危险，请先远离风险现场，再联系学校保卫处或相关应急部门。</p>
         </aside>
       </section>
-      <section class="feature-strip" aria-label="功能概览">
-        <a class="feature-card" href="#chat" data-tab="chat"><span>01</span><strong>政策问答</strong><p>进入政策问答页面，再打开飞书机器人咨询反诈、消防、宿舍安全等问题。</p></a>
-        <a class="feature-card" href="#quiz" data-tab="quiz"><span>02</span><strong>知识学习</strong><p>通过安全答题和三角色诈骗模拟，练习识别风险、劝阻求助和复盘判断。</p></a>
-        <a class="feature-card" href="#report" data-tab="report"><span>03</span><strong>隐患上报</strong><p>进入隐患上报页面，通过飞书表单提交地点、描述、图片和联系方式。</p></a>
-        <a class="feature-card" href="#help" data-tab="help"><span>04</span><strong>一键求助</strong><p>进入一键求助页面，手机端可直接调起拨号界面。</p></a>
-      </section>
 
-      <section class="workspace">
+      <section class="workspace help-workspace">
         <div class="workspace-head">
           <div>
-            <p class="eyebrow">Nankai Safety Service</p>
-            <h2>在线服务</h2>
+            <p class="eyebrow">Emergency Help</p>
+            <h2>保卫处求助电话</h2>
           </div>
         </div>
-        <section class="tab-panel active" id="chat" aria-label="政策问答">
-          <div class="module-grid report-single">
-            <div class="report-link-card">
-              <h3>政策问答</h3>
-              <p>请前往飞书机器人咨询校园安全问题。</p>
-              <a class="primary-link-button" href="https://applink.feishu.cn/client/bot/open?appId=cli_aac98d0e52b85be3">打开飞书机器人</a>
-            </div>
-          </div>
-        </section>
-
-        <section class="tab-panel" id="quiz" aria-label="知识学习">
-          <div class="module-grid learning-grid">
-            <div class="module-intro">
-              <h3>知识学习</h3>
-              <p>一边通过答题巩固基础安全知识，一边进入诈骗场景，选择体验者、帮助者或观察者身份做判断。</p>
-              <ul class="plain-list"><li>安全答题：即时反馈答案依据</li><li>三角色学习：体验、劝阻、观察风险</li><li>场景复盘：提炼下一次可执行的安全动作</li></ul>
-            </div>
-            <div class="learning-mode-switch" aria-label="选择知识学习方式">
-              <button class="learning-mode-button active" type="button" data-learning-mode="quiz"><span>安全答题</span><small>基础知识即时练习</small></button>
-              <button class="learning-mode-button" type="button" data-learning-mode="story"><span>三角色学习模式</span><small>进入沉浸式诈骗情景</small></button>
-            </div>
-            <div class="quiz-card learning-section active" data-learning-section="quiz">
-              <div class="quiz-meta"><span id="quizProgress">第 1 题</span><strong id="quizScore">得分 0</strong></div>
-              <h3 id="quizQuestion"></h3>
-              <div class="quiz-options" id="quizOptions"></div>
-              <p class="quiz-feedback" id="quizFeedback"></p>
-              <button class="primary-button" type="button" id="nextQuestion">下一题</button>
-            </div>
-            <div class="story-game-card learning-section" data-learning-section="story">
-              <div class="story-game-head">
-                <div>
-                  <span class="story-kicker">三角色剧情学习</span>
-                  <h3>选择一个情景，进入反诈剧情</h3>
-                  <p>点击图片场景后选择身份。角色一旦进入剧情，中途不能退出，需要走到结局后再返回。</p>
-                </div>
-                <strong id="gameStatus">选择场景</strong>
-              </div>
-
-              <div class="scene-gallery" id="scenarioGallery" aria-label="选择诈骗情景"></div>
-
-              <div class="role-stage" id="roleStage" hidden>
-                <div class="selected-scene" id="selectedScenePreview"></div>
-                <div class="role-stage-copy">
-                  <span class="story-kicker">选择身份</span>
-                  <h3 id="gameTitle">刷单返利诈骗</h3>
-                  <p id="gameBrief"></p>
-                </div>
-                <div class="role-picker" id="rolePicker" aria-label="选择学习角色">
-                  <button class="role-button active" type="button" data-role="experiencer"><span>体验者</span><small>成为当事人，在诱惑和压力里做决定</small></button>
-                  <button class="role-button" type="button" data-role="helper"><span>帮助者</span><small>陪同学核实信息，练习劝阻和止损</small></button>
-                  <button class="role-button" type="button" data-role="observer"><span>观察者</span><small>旁观骗局全过程，标记风险节点</small></button>
-                </div>
-                <button class="primary-button story-start" type="button" id="startStory">进入剧情</button>
-              </div>
-
-              <div class="story-stage" id="storyStage" hidden>
-                <div class="story-topbar">
-                  <span id="roleScenarioTag">剧情进行中</span>
-                  <strong id="gameRoleName">体验者</strong>
-                </div>
-                <div class="story-visual" id="storyVisual" aria-hidden="true"></div>
-                <div class="story-board" id="storyBoard" aria-label="剧情文本"></div>
-                <div class="thought-panel">
-                  <span>脑中想法</span>
-                  <p id="thoughtPrompt"></p>
-                  <div class="thought-choices" id="thoughtChoices"></div>
-                </div>
-                <p class="story-note" id="storyNote"></p>
-              </div>
-
-              <div class="ending-stage" id="endingStage" hidden>
-                <div class="ending-badge" id="endingBadge">学习结局</div>
-                <h3 id="endingTitle">完成学习</h3>
-                <p id="endingText"></p>
-                <div class="ending-report" id="endingReport"></div>
-                <button class="secondary-action" type="button" id="startOverStory">返回场景选择</button>
-              </div>
-            </div>          </div>
-        </section>
-        <section class="tab-panel" id="report" aria-label="隐患上报">
-          <div class="module-grid report-single">
-            <div class="report-link-card">
-              <h3>隐患上报</h3>
-              <p>请通过飞书表单提交校园安全隐患信息。</p>
-              <a class="primary-link-button" href="https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&view=vewoiUIlNk">打开隐患上报表单</a>
-            </div>
-          </div>
-        </section>
-        <section class="tab-panel" id="help" aria-label="一键求助">
+        <section class="tab-panel active" id="help" aria-label="一键求助">
           <div class="module-grid help-single">
-            <div class="help-panel"><div class="phone-visual" aria-hidden="true"><span></span></div><strong>保卫处求助电话</strong><p>022-123456</p><div class="help-note">遇到紧急情况请及时联系保卫处。</div><button class="danger-button" type="button" id="callButton">一键求助</button></div>
+            <div class="help-panel">
+              <div class="phone-visual" aria-hidden="true"><span></span></div>
+              <strong>保卫处求助电话</strong>
+              <p>022-123456</p>
+              <div class="help-note">当前为测试号码，正式使用前请替换为学校确认后的值班电话。</div>
+              <button class="danger-button" type="button" id="callButton">一键求助</button>
+            </div>
           </div>
         </section>
       </section>
     </main>
 
-    <footer class="site-footer"><span>南开安全卫士</span><span>校园安全服务平台</span></footer>
+    <footer class="site-footer"><span>南开安全卫士</span><span>一键求助</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

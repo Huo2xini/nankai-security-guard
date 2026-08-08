@@ -1,61 +1,24 @@
-﻿# 南开安全卫士
+# 南开安全卫士
 
-这是一个响应式网页 Demo，用于展示“南开安全卫士”的核心功能：
+“南开安全卫士”是面向全校师生的飞书内嵌安全助理。机器人负责政策问答、隐患上报入口和功能菜单，网页端不再设置首页，只保留需要独立交互承载的页面。
 
-- 政策问答/安全知识：根据综合题库关键词模拟安全知识问答。
-- 安全答题：抽取题库题目，支持选择答案、判断对错、解释答案和累计得分。
-- 隐患上报：保留可上线字段，当前为演示提交。
-- 一键求助：展示保卫处电话 `022-123456`，当前为演示拨号。
+## 网页端页面
 
-## 公网入口
+根路径 index.html 仅用于自动跳转到知识学习页，不作为独立首页展示。
 
-首页：
+- 知识学习：https://huo2xini.github.io/nankai-security-guard/knowledge.html
+- 一键求助：https://huo2xini.github.io/nankai-security-guard/help.html
 
-```text
-https://huo2xini.github.io/nankai-security-guard/
-```
+政策问答不再做网页中转页，用户直接在飞书机器人中咨询。隐患上报不再做网页中转页，用户直接通过飞书表单提交。
 
-安全知识：
+## 当前功能
 
-```text
-https://huo2xini.github.io/nankai-security-guard/knowledge.html
-```
+- 知识学习：包括安全答题和三角色学习模式。
+- 三角色学习：学生选择体验者、帮助者或观察者，进入审核通过并脱敏后的校园安全情景。
+- 学习记录：学生通过飞书登录进入知识学习页面后，系统记录飞书 ID、飞书名称和学习完成情况。
+- 一键求助：移动端可调起拨号界面，网页端显示保卫处求助电话。
+- 编辑审核：编辑员和审核员分别通过 editor.html、reviewer.html 处理案例完善、审核、发布和退回。
 
-隐患上报：
+## 后端说明
 
-```text
-https://huo2xini.github.io/nankai-security-guard/report.html
-```
-
-一键求助：
-
-```text
-https://huo2xini.github.io/nankai-security-guard/help.html
-```
-
-## 在 IDEA 中打开
-
-1. 打开 IntelliJ IDEA。
-2. 选择 `Open`。
-3. 选择这个文件夹：`C:\Users\Lenovo\Documents\Nankai Security Guard`。
-4. 打开后可以直接查看 `index.html`、`styles.css`、`app.js`。
-
-## 在 IDEA 中运行网站
-
-你的电脑当前没有识别到 `npm`，所以请在 IDEA 的 Terminal 中运行：
-
-```bat
-start-website.bat
-```
-
-运行后打开：
-
-```text
-http://localhost:8000
-```
-
-## 后续上线方向
-
-- 将问答模块接入飞书智能体和学校安全知识库。
-- 将隐患上报写入飞书多维表格或后端数据库。
-- 增加登录、权限、处置状态、统计看板和数据导出。
+本地或服务器运行 Node.js 后端时，系统可连接 MySQL 数据库 nankai_security_guard，支持案例自动采集、查重、编辑审核、学生身份写入和学习记录保存。GitHub Pages 只能托管静态页面，不能运行后端和 MySQL 逻辑。

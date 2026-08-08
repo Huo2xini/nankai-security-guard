@@ -1,0 +1,41 @@
+{
+  "schemaVersion": "2026-07-campus-safety-schema-v2",
+  "requiredForIntake": ["sourceName", "sourceUrl", "sourceDate", "safetyType", "campusScene", "title", "hook"],
+  "requiredForEditorSubmit": ["sourceUrl", "desensitization", "safetyType", "campusScene", "warningSigns", "safeActions"],
+  "requiredForPublish": ["sourceUrl", "desensitization", "safetyType", "campusScene", "warningSigns", "safeActions"],
+  "duplicateRule": {
+    "threshold": 0.55,
+    "scope": "优先比较同安全类型、同校园情景案例；若类型或情景缺失，则与全库比较。",
+    "method": "标题、情景摘要、风险升级、风险信号和安全动作合并后进行中文字符二元组 Jaccard 相似度计算。",
+    "action": "相似度达到阈值时标记 duplicate，不进入编辑员和审核员流程。"
+  },
+  "fields": [
+    { "name": "id", "group": "系统字段", "meaning": "案例唯一编号" },
+    { "name": "reviewStatus", "group": "流程字段", "meaning": "draft 待完善；review 待审核；revision 退回修改；approved 已发布；duplicate 重复归档" },
+    { "name": "sourceType", "group": "来源字段", "meaning": "official 官方来源；manual 人工补充" },
+    { "name": "sourceAuthority", "group": "来源字段", "meaning": "nankai 南开校内官方；public-authority 校外权威机构" },
+    { "name": "sourceName", "group": "来源字段", "meaning": "来源网站、通知或通报名称" },
+    { "name": "sourceUrl", "group": "来源字段", "meaning": "原始官方链接" },
+    { "name": "sourceDate", "group": "来源字段", "meaning": "来源发布日期或采集确认日期" },
+    { "name": "collectedAt", "group": "来源字段", "meaning": "进入案例库时间" },
+    { "name": "safetyType", "group": "分类字段", "meaning": "反诈骗、消防安全、交通安全、治安安全、实验室安全、网络安全" },
+    { "name": "campusScene", "group": "分类字段", "meaning": "典型校园情景，按六类安全类型维护固定选项，例如兼职刷单、宿舍用电、企业微信冒用、VPN软件风险等" },
+    { "name": "title", "group": "展示字段", "meaning": "案例标题" },
+    { "name": "subtitle", "group": "展示字段", "meaning": "场景副标题" },
+    { "name": "desensitization", "group": "合规字段", "meaning": "脱敏说明" },
+    { "name": "duplicateCheck", "group": "合规字段", "meaning": "去重结果、最高相似度、匹配案例和检查时间" },
+    { "name": "hook", "group": "情景生成字段", "meaning": "情景开端" },
+    { "name": "firstLure", "group": "情景生成字段", "meaning": "初始诱因" },
+    { "name": "escalation", "group": "情景生成字段", "meaning": "风险升级" },
+    { "name": "pressure", "group": "情景生成字段", "meaning": "压力话术" },
+    { "name": "riskyChoice", "group": "情景生成字段", "meaning": "错误选择" },
+    { "name": "safeChoice", "group": "情景生成字段", "meaning": "安全选择" },
+    { "name": "helperAction", "group": "情景生成字段", "meaning": "帮助者正确动作" },
+    { "name": "wrongHelp", "group": "情景生成字段", "meaning": "帮助者错误动作" },
+    { "name": "warningSigns", "group": "学习字段", "meaning": "风险信号列表" },
+    { "name": "safeActions", "group": "学习字段", "meaning": "安全动作列表" },
+    { "name": "reviewNote", "group": "流程字段", "meaning": "编辑说明或审核意见" },
+    { "name": "reviewedAt", "group": "流程字段", "meaning": "最近审核日期" },
+    { "name": "updatedAt", "group": "系统字段", "meaning": "最近修改日期" }
+  ]
+}

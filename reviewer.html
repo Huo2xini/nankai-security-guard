@@ -1,0 +1,450 @@
+<!doctype html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>南开安全卫士 - 审核员工作台</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body data-default-tab="admin">
+    <header class="site-header">
+      <div class="header-inner">
+        <a class="brand" href="index.html" aria-label="南开安全卫士首页">
+          <span class="brand-mark" aria-hidden="true">卫</span>
+          <span><strong>南开安全卫士</strong><small>Nankai Safety Assistant</small></span>
+        </a>
+      </div>
+    </header>
+
+        <main class="admin-console">
+      <section class="admin-toolbar" aria-label="案例管理工具栏">
+        <div>
+          <p class="eyebrow">Case Desk</p>
+          <h1>审核员工作台</h1>
+        </div>
+        <div class="admin-toolbar-actions">
+        </div>
+      </section>
+
+      <section class="admin-collection-strip" aria-label="采集状态">
+        <div class="admin-collection-grid" id="collectionStatusGrid">
+          <article><span>状态</span><strong>读取中</strong><p>正在连接后端。</p></article>
+        </div>
+      </section>
+<section class="workspace admin-workspace admin-review-board">
+        <div class="workspace-head">
+          <div><p class="eyebrow">Review Desk</p><h2>待办案例</h2></div>
+          <strong class="admin-save-state" id="adminSaveState">连接案例库中</strong>
+        </div>
+        <div class="admin-status-tabs" id="adminStatusTabs" role="tablist" aria-label="案例状态筛选"></div>
+        <div class="admin-review-layout">
+          <div class="admin-case-list" id="adminReviewList" aria-label="案例列表"></div>
+          <article class="admin-review-detail" id="adminReviewDetail" aria-live="polite"></article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="site-footer"><span>南开安全卫士</span><span>前后端案例库</span></footer>
+    <script>
+      let libraryState = { sourcePool: [], cases: [] };
+      let activeRole = 'reviewer';
+      let activeStatus = 'review';
+      let activeCaseId = '';
+      let activePublishedType = '全部';
+      let activePublishedScene = '全部';
+      let publishedSearchQuery = '';
+
+      const roleStatuses = { editor: ['draft', 'revision'], reviewer: ['review', 'approved'] };
+      const statusText = { draft: '待完善', revision: '退回修改', review: '待审核', approved: '已发布' };
+      const safetyTypes = ['全部', '反诈骗', '消防安全', '交通安全', '治安安全', '实验室安全', '网络安全'];
+      const sceneOptionsByType = {
+        '反诈骗': ['兼职刷单', '冒充老师', '奖学金申报', '二手交易', '账号盗用借钱', '冒充客服退款', '冒充公检法', '虚假实习招聘', '虚假竞赛缴费', '校园卡充值骗局', '助学金补录', '培训考证缴费', '游戏账号交易', '演唱会门票交易', '快递理赔诈骗', '网络交友诱导转账'],
+        '消防安全': ['宿舍用电', '实验室操作', '逃生通道', '违规电器', '电动车入楼', '插排过载', '充电器长期不断电', '宿舍明火', '楼道堆物', '消防设施遮挡', '烟感报警处置', '食堂后厨用火', '大型活动消防', '冬季取暖安全'],
+        '交通安全': ['校园骑行', '电动车充电', '校门口通行', '骑车看手机', '逆行抢行', '夜间无灯骑行', '雨雪天通行', '共享单车乱停', '机动车盲区', '校车乘坐', '步行横穿道路', '外卖车辆通行', '电动车载人', '头盔佩戴'],
+        '治安安全': ['夜间出行', '陌生人尾随', '物品遗失', '宿舍防盗', '图书馆占座物品', '快递外卖取件', '陌生人搭讪', '校外租房', '大型活动拥挤', '醉酒同伴照护', '门禁尾随进入', '可疑人员报告', '个人证件遗失', '现金贵重物品保管'],
+        '实验室安全': ['化学品使用', '仪器操作', '废液处理', '危险化学品存放', '气瓶使用', '高温高压设备', '激光设备', '生物样本处理', '实验室用电', '个人防护装备', '实验后清场', '试剂标签缺失', '通风橱使用', '应急喷淋洗眼'],
+        '网络安全': ['钓鱼链接', '账号密码', '验证码泄露', '企业微信冒用', 'VPN软件风险', '统一身份认证仿冒', '邮件附件木马', '二维码扫码登录', '公共Wi-Fi风险', '网盘共享泄露', '社交账号被盗', '飞书群邀请核验', '浏览器插件风险', '个人信息授权', 'eduroam账号使用']
+      };
+
+      function normalizeReviewStatus(status) {
+        return { pending: 'review', returned: 'revision' }[status] || status || 'draft';
+      }
+
+      function caseStatusLabel(status) {
+        return statusText[normalizeReviewStatus(status)] || status;
+      }
+
+      function statusCases(status) {
+        return (libraryState.cases || []).filter((item) => normalizeReviewStatus(item.reviewStatus) === status);
+      }
+
+      function updateSaveState(text) {
+        document.querySelector('#adminSaveState').textContent = text;
+      }
+
+      async function fetchCaseLibrary() {
+        const response = await fetch('/api/cases', { cache: 'no-store' });
+        if (!response.ok) throw new Error('案例库读取失败');
+        libraryState = await response.json();
+        libraryState.cases = (libraryState.cases || []).map((item) => ({ ...item, reviewStatus: normalizeReviewStatus(item.reviewStatus) }));
+        updateSaveState(`后端案例库：${libraryState.cases.length} 个案例`);
+      }
+
+      async function fetchCollectionStatus() {
+        const response = await fetch('/api/collection/status', { cache: 'no-store' });
+        if (!response.ok) throw new Error('采集状态读取失败');
+        return response.json();
+      }
+
+      function renderCollectionStatus(collection) {
+        const grid = document.querySelector('#collectionStatusGrid');
+        const run = collection.lastRun;
+        if (!run) {
+          grid.innerHTML = `
+            <article><span>采集状态</span><strong>尚未采集</strong><p>下次：${collection.nextRunAtText || '00:00'}</p></article>
+            <article><span>待完善</span><strong>${statusCases('draft').length}</strong><p>等待编辑员整理。</p></article>
+            <article><span>待审核</span><strong>${statusCases('review').length}</strong><p>等待审核员处理。</p></article>
+          `;
+          return;
+        }
+        grid.innerHTML = `
+          <article><span>最近采集</span><strong>${run.finishedAtText || run.startedAtText || run.date}</strong><p>${run.trigger === 'manual' ? '手动触发' : '自动任务'}</p></article>
+          <article><span>新增待完善</span><strong>${run.created}</strong><p>重复跳过 ${run.duplicate || 0} 条。</p></article>
+          <article><span>下次采集</span><strong>${collection.nextRunAtText || '00:00'}</strong><p>每日自动更新。</p></article>
+        `;
+      }
+
+      async function refreshCollectionStatus() {
+        try {
+          renderCollectionStatus(await fetchCollectionStatus());
+        } catch (error) {
+          document.querySelector('#collectionStatusGrid').innerHTML = '<article><span>状态</span><strong>读取失败</strong><p>请确认后端服务已启动。</p></article>';
+        }
+      }
+
+      async function patchCaseStatus(id, status, reviewNote) {
+        const response = await fetch(`/api/cases/${encodeURIComponent(id)}/status`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ reviewStatus: status, reviewNote })
+        });
+        if (!response.ok) throw new Error('状态保存失败');
+        const result = await response.json();
+        libraryState = result.database;
+        updateSaveState(`已保存到后端：${new Date().toLocaleTimeString()}`);
+      }
+
+      async function patchCaseDetails(id, details) {
+        const response = await fetch(`/api/cases/${encodeURIComponent(id)}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(details)
+        });
+        if (!response.ok) throw new Error('案例保存失败');
+        const result = await response.json();
+        libraryState = result.database;
+        updateSaveState(`整理内容已保存：${new Date().toLocaleTimeString()}`);
+      }
+
+      function statusHint(status) {
+        const messages = {
+          draft: '编辑员在这里补齐来源、脱敏说明、风险信号和安全动作。整理完成后，提交给审核员。',
+          revision: '审核员已退回。编辑员根据审核意见完善后，可以再次提交审核。',
+          review: '审核员在这里复核案例质量。确认无误后发布；不合格则退回给编辑员修改。',
+          approved: '这条已经发布。审核员仍可撤回并退回给编辑员修改。'
+        };
+        return `<p class="admin-hint">${messages[normalizeReviewStatus(status)] || messages.draft}</p>`;
+      }
+      function renderRoleTabs() {}
+
+      function renderStatusTabs() {
+        const tabs = document.querySelector('#adminStatusTabs');
+        const statuses = roleStatuses[activeRole];
+        if (!statuses.includes(activeStatus)) activeStatus = statuses[0];
+        tabs.innerHTML = statuses.map((status) => `<button class="${status === activeStatus ? 'active' : ''}" type="button" data-status="${status}">${statusText[status]} <strong>${statusCases(status).length}</strong></button>`).join('');
+        tabs.querySelectorAll('[data-status]').forEach((button) => {
+          button.addEventListener('click', () => {
+            activeStatus = button.dataset.status;
+            activeCaseId = '';
+            renderStatusTabs();
+            renderReviewList();
+          });
+        });
+      }
+
+      function caseSearchText(item) {
+        return [item.title, item.subtitle, item.safetyType, item.campusScene, item.sourceName, item.hook, item.escalation, ...(item.warningSigns || []), ...(item.safeActions || [])].filter(Boolean).join(' ').toLowerCase();
+      }
+
+      function publishedCategories() {
+        return safetyTypes.map((type) => {
+          const items = type === '全部' ? statusCases('approved') : statusCases('approved').filter((item) => item.safetyType === type);
+          const scenes = ['全部', ...Array.from(new Set(items.map((item) => item.campusScene).filter(Boolean)))];
+          return { type, count: items.length, scenes };
+        });
+      }
+
+      function filteredPublishedCases() {
+        const query = publishedSearchQuery.trim().toLowerCase();
+        return statusCases('approved').filter((item) => {
+          const matchesType = activePublishedType === '全部' || item.safetyType === activePublishedType;
+          const matchesScene = activePublishedScene === '全部' || item.campusScene === activePublishedScene;
+          const matchesSearch = !query || caseSearchText(item).includes(query);
+          return matchesType && matchesScene && matchesSearch;
+        });
+      }
+
+      function renderPublishedBrowser() {
+        const list = document.querySelector('#adminReviewList');
+        const detail = document.querySelector('#adminReviewDetail');
+        const categories = publishedCategories();
+        const activeCategory = categories.find((item) => item.type === activePublishedType) || categories[0];
+        if (!activeCategory.scenes.includes(activePublishedScene)) activePublishedScene = '全部';
+        list.innerHTML = categories.map((category) => `<button class="admin-category-row ${category.type === activePublishedType ? 'active' : ''}" type="button" data-type="${category.type}"><span>${category.type}</span><strong>${category.count}</strong></button>`).join('');
+        list.querySelectorAll('[data-type]').forEach((button) => button.addEventListener('click', () => { activePublishedType = button.dataset.type; activePublishedScene = '全部'; renderPublishedBrowser(); }));
+        const results = filteredPublishedCases();
+        detail.innerHTML = `
+          <div class="admin-published-head"><div><span>已发布案例库</span><h3>${activePublishedType === '全部' ? '全部安全类型' : activePublishedType}</h3><p>按安全类型和典型校园情景浏览，支持搜索标题、来源、风险点和安全动作。</p></div><strong>${results.length} 个结果</strong></div>
+          <div class="admin-search-row"><input id="publishedSearchInput" type="search" placeholder="搜索案例、来源、风险信号或安全动作" value="${publishedSearchQuery.replace(/"/g, '&quot;')}" /></div>
+          <div class="admin-scene-filter">${activeCategory.scenes.map((scene) => `<button class="${scene === activePublishedScene ? 'active' : ''}" type="button" data-scene="${scene}">${scene}</button>`).join('')}</div>
+          <div class="admin-published-grid">${results.length ? results.map((item) => `<article class="admin-published-card"><span>${item.safetyType} · ${item.campusScene}</span><strong>${item.title}</strong><p>${item.hook || item.subtitle || ''}</p><small>${item.sourceName || '来源待补充'}</small><div>${(item.warningSigns || []).slice(0, 3).map((sign) => `<em>${sign}</em>`).join('')}</div><button class="secondary-button" type="button" data-revise-approved="${item.id}">撤回并退回编辑员</button></article>`).join('') : '<p class="admin-empty">没有找到匹配的已发布案例。</p>'}</div>
+        `;
+        const searchInput = document.querySelector('#publishedSearchInput');
+        searchInput.addEventListener('input', (event) => { publishedSearchQuery = event.target.value; renderPublishedBrowser(); document.querySelector('#publishedSearchInput')?.focus(); });
+        detail.querySelectorAll('[data-scene]').forEach((button) => button.addEventListener('click', () => { activePublishedScene = button.dataset.scene; renderPublishedBrowser(); }));
+        detail.querySelectorAll('[data-revise-approved]').forEach((button) => button.addEventListener('click', () => updateCaseStatus(button.dataset.reviseApproved, 'revision', 'reviewer')));
+      }
+
+      function renderReviewList() {
+        if (activeRole === 'reviewer' && activeStatus === 'approved') { renderPublishedBrowser(); return; }
+        const list = document.querySelector('#adminReviewList');
+        const cases = statusCases(activeStatus);
+        if (!cases.length) {
+          list.innerHTML = '<p class="admin-empty">当前没有这个状态的案例。</p>';
+          activeCaseId = '';
+          renderReviewDetail(null);
+          return;
+        }
+        if (!cases.some((item) => item.id === activeCaseId)) activeCaseId = cases[0].id;
+        list.innerHTML = cases.map((item) => `<button class="admin-case-row ${item.id === activeCaseId ? 'active' : ''}" type="button" data-case-id="${item.id}"><span>${caseStatusLabel(item.reviewStatus)}</span><strong>${item.title}</strong><small>${item.safetyType} · ${item.campusScene}</small></button>`).join('');
+        list.querySelectorAll('[data-case-id]').forEach((button) => button.addEventListener('click', () => { activeCaseId = button.dataset.caseId; renderReviewList(); renderReviewDetail(findCase(activeCaseId)); }));
+        renderReviewDetail(findCase(activeCaseId));
+      }
+
+      function findCase(id) {
+        return (libraryState.cases || []).find((item) => item.id === id);
+      }
+
+      function escapeHtml(value) {
+        return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
+      }
+
+      function checklistItem(text, checked) {
+        return `<label class="${checked ? 'passed' : 'failed'}"><input type="checkbox" disabled ${checked ? 'checked' : ''} /> ${text}</label>`;
+      }
+
+      function listText(items) {
+        return Array.isArray(items) ? items.join('\n') : '';
+      }
+
+      function splitList(value) {
+        return String(value || '').split(/[\n，,、；;]/).map((item) => item.trim()).filter(Boolean);
+      }
+
+      function isSpecificScene(value) {
+        return Boolean(value && value !== '待分类情景');
+      }
+
+      function optionTags(options, selectedValue) {
+        return options.map((option) => `<option value="${escapeHtml(option)}" ${option === selectedValue ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('');
+      }
+
+      function sceneOptionsForType(type, currentScene) {
+        const options = sceneOptionsByType[type] || [];
+        const merged = currentScene && currentScene !== '待分类情景' && !options.includes(currentScene) ? [...options, currentScene] : options;
+        return merged;
+      }
+
+      function isCleanDesensitization(value) {
+        return Boolean(value && !/(待审核|待完善|需由编辑员|真实姓名|手机号|身份证|银行卡号|学号\d+)/.test(value));
+      }
+
+      function isUsefulList(items) {
+        if (!Array.isArray(items) || items.length < 3) return false;
+        return !items.some((item) => /需进一步|需完成|补充|待/.test(item));
+      }
+
+      function editorFieldsFor(item) {
+        if (activeRole !== 'editor') return '';
+        return `
+          <form class="admin-edit-form" id="caseEditForm">
+            <strong>整理内容</strong>
+            <div class="admin-edit-grid">
+              <label>安全类型<select name="safetyType" id="safetyTypeSelect"><option value="">请选择安全类型</option>${optionTags(safetyTypes.filter((type) => type !== '全部'), item.safetyType)}</select></label>
+              <label>校园情景<select name="campusScene" id="campusSceneSelect"><option value="">请选择校园情景</option>${optionTags(sceneOptionsForType(item.safetyType, item.campusScene), item.campusScene)}</select></label>
+              <label>来源名称<input name="sourceName" value="${escapeHtml(item.sourceName)}" /></label>
+              <label>来源日期<input name="sourceDate" value="${escapeHtml(item.sourceDate)}" placeholder="YYYY-MM-DD" /></label>
+              <label>来源链接<input name="sourceUrl" value="${escapeHtml(item.sourceUrl)}" /></label>
+              <label>副标题<input name="subtitle" value="${escapeHtml(item.subtitle)}" /></label>
+            </div>
+            <label>案例标题<textarea name="title" rows="2">${escapeHtml(item.title)}</textarea></label>
+            <label>情景开端<textarea name="hook" rows="3" placeholder="把官网通知改写成学生会遇到的具体开端。">${escapeHtml(item.hook)}</textarea></label>
+            <label>风险升级<textarea name="escalation" rows="3" placeholder="说明如果继续操作，风险如何扩大。">${escapeHtml(item.escalation)}</textarea></label>
+            <label>脱敏说明<textarea name="desensitization" rows="3">${escapeHtml(item.desensitization)}</textarea></label>
+            <label>风险信号<textarea name="warningSigns" rows="4" placeholder="每行一条，至少三条，不要保留‘需补充’模板句。">${escapeHtml(listText(item.warningSigns))}</textarea></label>
+            <label>安全动作<textarea name="safeActions" rows="4" placeholder="每行一条，至少三条，写成学生能执行的动作。">${escapeHtml(listText(item.safeActions))}</textarea></label>
+            <button class="secondary-button" type="submit">保存整理内容</button>
+          </form>
+        `;
+      }
+
+      function actionButtonsFor(item, allPassed) {
+        const status = normalizeReviewStatus(item.reviewStatus);
+        const disabledSubmit = allPassed ? '' : 'disabled aria-disabled="true"';
+        const disabledReturn = allPassed ? 'disabled aria-disabled="true"' : '';
+        if (activeRole === 'editor') return `<button class="primary-link-button" type="button" id="submitCaseButton" ${disabledSubmit}>提交给审核员</button>`;
+        if (status === 'approved') return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>撤回并退回编辑员</button>`;
+        return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>退回编辑员修改</button><button class="primary-link-button" type="button" id="approveCaseButton" ${disabledSubmit}>审核通过并发布</button>`;
+      }
+
+      function bindActionButtons(item, allPassed) {
+        document.querySelector('#submitCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'review', 'editor'); });
+        document.querySelector('#reviseCaseButton')?.addEventListener('click', () => { if (!allPassed) updateCaseStatus(item.id, 'revision', 'reviewer'); });
+        document.querySelector('#approveCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'approved', 'reviewer'); });
+      }
+
+      function renderReviewDetail(item) {
+        const detail = document.querySelector('#adminReviewDetail');
+        if (!item) {
+          detail.innerHTML = `<div class="admin-empty">${activeRole === 'editor' ? '编辑员当前没有需要处理的案例。' : '审核员当前没有需要处理的案例。'}</div>`;
+          return;
+        }
+        const checklistTitle = activeRole === 'editor' ? '编辑员整理项' : '审核员检查项';
+        const checklist = [
+          ['来源是学校或权威官方渠道', /^https:\/\//.test(item.sourceUrl || '')],
+          ['已完成信息脱敏说明', isCleanDesensitization(item.desensitization)],
+          ['安全类型和具体校园情景清楚', Boolean(item.safetyType) && isSpecificScene(item.campusScene)],
+          ['风险信号不少于 3 条且不是模板句', isUsefulList(item.warningSigns)],
+          ['安全动作不少于 3 条且可执行', isUsefulList(item.safeActions)]
+        ];
+        const failedItems = checklist.filter(([, checked]) => !checked).map(([text]) => text);
+        const allPassed = failedItems.length === 0;
+        const ruleNote = allPassed
+          ? '5 项均满足，可以进入下一步。'
+          : `还有 ${failedItems.length} 项不满足：${failedItems.join('、')}。`;
+        detail.innerHTML = `
+          <div class="admin-detail-head"><span>${activeRole === 'editor' ? '编辑员' : '审核员'} · ${caseStatusLabel(item.reviewStatus)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.safetyType)} · ${escapeHtml(item.campusScene)} · ${escapeHtml(item.subtitle || '')}</p></div>
+          <dl class="admin-meta-grid"><div><dt>来源</dt><dd><a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.sourceName || item.sourceUrl)}</a></dd></div><div><dt>来源日期</dt><dd>${escapeHtml(item.sourceDate || '待补充')}</dd></div><div><dt>脱敏说明</dt><dd>${escapeHtml(item.desensitization || '待补充')}</dd></div></dl>
+          <div class="admin-story-preview"><strong>情景摘要</strong><p>${escapeHtml(item.hook)}</p><p>${escapeHtml(item.escalation)}</p></div>
+          ${editorFieldsFor(item)}
+          <div class="admin-checklist"><strong>${checklistTitle}</strong>${checklist.map(([text, checked]) => checklistItem(text, checked)).join('')}<p class="admin-rule-note ${allPassed ? 'passed' : 'failed'}">${ruleNote}</p></div>
+          <div class="admin-chip-group">${(item.warningSigns || []).map((sign) => `<span>${escapeHtml(sign)}</span>`).join('')}</div>
+          <label class="admin-note-label">${activeRole === 'editor' ? '内部备注（可选，不是正文编辑区）' : '审核意见 / 退回原因'}<textarea id="reviewNote" rows="3" placeholder="编辑员：可记录整理依据；审核员：退回时写明哪一项不满足。正式案例内容请在上方字段中编辑。">${escapeHtml(item.reviewNote || '')}</textarea></label>
+          <div class="admin-detail-actions">${actionButtonsFor(item, allPassed)}</div>${statusHint(item.reviewStatus)}
+        `;
+        bindEditorSceneSelectors(item);
+        bindEditorForm(item);
+        bindActionButtons(item, allPassed);
+      }
+
+      function bindEditorSceneSelectors(item) {
+        const typeSelect = document.querySelector('#safetyTypeSelect');
+        const sceneSelect = document.querySelector('#campusSceneSelect');
+        if (!typeSelect || !sceneSelect) return;
+        typeSelect.addEventListener('change', () => {
+          const options = sceneOptionsForType(typeSelect.value, '');
+          sceneSelect.innerHTML = `<option value="">请选择校园情景</option>${optionTags(options, '')}`;
+        });
+      }
+
+      function bindEditorForm(item) {
+        const form = document.querySelector('#caseEditForm');
+        if (!form) return;
+        form.addEventListener('submit', async (event) => {
+          event.preventDefault();
+          const formData = new FormData(form);
+          try {
+            updateSaveState('正在保存整理内容');
+            await patchCaseDetails(item.id, {
+              safetyType: formData.get('safetyType').trim(),
+              campusScene: formData.get('campusScene').trim(),
+              sourceName: formData.get('sourceName').trim(),
+              sourceUrl: formData.get('sourceUrl').trim(),
+              sourceDate: formData.get('sourceDate').trim(),
+              subtitle: formData.get('subtitle').trim(),
+              title: formData.get('title').trim(),
+              hook: formData.get('hook').trim(),
+              escalation: formData.get('escalation').trim(),
+              desensitization: formData.get('desensitization').trim(),
+              warningSigns: splitList(formData.get('warningSigns')),
+              safeActions: splitList(formData.get('safeActions'))
+            });
+            activeCaseId = item.id;
+            renderStatusTabs();
+            renderReviewList();
+            renderSources();
+            refreshCollectionStatus();
+          } catch (error) {
+            updateSaveState('整理内容保存失败');
+          }
+        });
+      }
+      async function updateCaseStatus(id, status, nextRole) {
+        const item = findCase(id);
+        if (!item) return;
+        try {
+          updateSaveState('正在保存到后端');
+          const noteBox = document.querySelector('#reviewNote');
+          await patchCaseStatus(id, status, noteBox ? noteBox.value.trim() : item.reviewNote || '');
+          activeRole = nextRole || activeRole;
+          activeStatus = status;
+          activeCaseId = id;
+          renderRoleTabs();
+          renderStatusTabs();
+          renderReviewList();
+          renderSources();
+          refreshCollectionStatus();
+        } catch (error) {
+          updateSaveState('保存失败，请确认后端已启动');
+        }
+      }
+
+      function renderSources() {
+        const sourceList = document.querySelector('#adminSourceList');
+        if (!sourceList) return;
+        sourceList.innerHTML = (libraryState.sourcePool || []).map((item) => `<article><strong>${item.name}</strong><a href="${item.url}" target="_blank" rel="noreferrer">${item.url}</a><p>${(item.types || []).join('、')}</p></article>`).join('');
+      }
+
+      async function initAdminCases() {
+        try {
+          await fetchCaseLibrary();
+          renderRoleTabs();
+          renderStatusTabs();
+          renderReviewList();
+          renderSources();
+          refreshCollectionStatus();
+        } catch (error) {
+          updateSaveState('后端未连接');
+          document.querySelector('#adminReviewList').innerHTML = '<p class="admin-empty">案例库读取失败，请确认后端服务已启动。</p>';
+          document.querySelector('#adminReviewDetail').innerHTML = '';
+        }
+      }
+
+      document.querySelector('#runCollectionButton')?.addEventListener('click', async () => {
+        try {
+          document.querySelector('#collectionStatusGrid').innerHTML = '<article><span>状态</span><strong>正在采集</strong><p>正在采集并查重。</p></article>';
+          const response = await fetch('/api/collection/run', { method: 'POST' });
+          if (!response.ok) throw new Error('采集失败');
+          await fetchCaseLibrary();
+          renderStatusTabs();
+          renderReviewList();
+          renderSources();
+          refreshCollectionStatus();
+        } catch (error) {
+          document.querySelector('#collectionStatusGrid').innerHTML = '<article><span>状态</span><strong>采集失败</strong><p>请检查网络或官方来源是否可访问。</p></article>';
+        }
+      });
+      initAdminCases();
+    </script>
+  </body>
+</html>

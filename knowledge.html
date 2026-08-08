@@ -3,69 +3,54 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>南开安全卫士 - 安全知识</title>
+    <title>南开安全卫士 - 知识学习</title>
     <link rel="stylesheet" href="styles.css" />
   </head>
   <body data-default-tab="quiz">
     <header class="site-header">
       <div class="header-inner">
-        <a class="brand" href="index.html" aria-label="南开安全卫士首页">
-          <span class="brand-mark" aria-hidden="true">卫</span>
+        <div class="brand" aria-label="南开安全卫士知识学习">
+          <span class="brand-mark" aria-hidden="true">南</span>
           <span>
             <strong>南开安全卫士</strong>
             <small>Nankai Safety Assistant</small>
           </span>
-        </a>
+        </div>
       </div>
     </header>
 
     <main>
-      <section class="hero">
+      <section class="hero knowledge-hero">
         <div class="hero-copy">
-          <p class="eyebrow">校园安全智能服务平台</p>
-          <h1>把安全问答、隐患上报和应急求助放在一个网页里</h1>
-          <p>面向师生的校园安全服务平台，支持安全知识查询、隐患上报和一键求助。</p>
+          <p class="eyebrow">校园安全知识学习</p>
+          <h1>通过答题和情景模拟学习校园安全知识</h1>
+          <p>安全知识页面仅保留学习功能，学生可通过安全答题巩固基础知识，也可进入三角色学习模式，在真实校园情景中练习识别风险、协助他人和复盘判断。</p>
         </div>
-        <aside class="safety-summary" aria-label="安全提醒">
-          <span>今日提醒</span>
-          <strong>谨防陌生链接、冒充客服和“安全账户”诈骗</strong>
-          <p>遇到不明收费、短信链接、扫码认证、电话转账等情况，请先向学校或官方渠道核实。</p>
+        <aside class="safety-summary" aria-label="学习提醒">
+          <span>学习提醒</span>
+          <strong>先识别风险，再选择行动</strong>
+          <p>遇到陌生链接、异常转账、消防隐患、实验室风险或紧急情况时，请先核实来源，保留证据，并通过学校官方渠道求助。</p>
         </aside>
       </section>
-      <section class="feature-strip" aria-label="功能概览">
-        <a class="feature-card" href="#chat" data-tab="chat"><span>01</span><strong>政策问答</strong><p>进入政策问答页面，再打开飞书机器人咨询反诈、消防、宿舍安全等问题。</p></a>
-        <a class="feature-card" href="#quiz" data-tab="quiz"><span>02</span><strong>知识学习</strong><p>通过安全答题和三角色诈骗模拟，练习识别风险、劝阻求助和复盘判断。</p></a>
-        <a class="feature-card" href="#report" data-tab="report"><span>03</span><strong>隐患上报</strong><p>进入隐患上报页面，通过飞书表单提交地点、描述、图片和联系方式。</p></a>
-        <a class="feature-card" href="#help" data-tab="help"><span>04</span><strong>一键求助</strong><p>进入一键求助页面，手机端可直接调起拨号界面。</p></a>
-      </section>
 
-      <section class="workspace">
+      <section class="workspace knowledge-workspace">
         <div class="workspace-head">
           <div>
-            <p class="eyebrow">Nankai Safety Service</p>
-            <h2>在线服务</h2>
+            <p class="eyebrow">Knowledge Learning</p>
+            <h2>知识学习</h2>
           </div>
         </div>
-        <section class="tab-panel active" id="chat" aria-label="政策问答">
-          <div class="module-grid report-single">
-            <div class="report-link-card">
-              <h3>政策问答</h3>
-              <p>请前往飞书机器人咨询校园安全问题。</p>
-              <a class="primary-link-button" href="https://applink.feishu.cn/client/bot/open?appId=cli_aac98d0e52b85be3">打开飞书机器人</a>
-            </div>
-          </div>
-        </section>
 
-        <section class="tab-panel" id="quiz" aria-label="知识学习">
+        <section class="tab-panel active" id="quiz" aria-label="知识学习">
           <div class="module-grid learning-grid">
             <div class="module-intro">
-              <h3>知识学习</h3>
-              <p>一边通过答题巩固基础安全知识，一边进入诈骗场景，选择体验者、帮助者或观察者身份做判断。</p>
-              <ul class="plain-list"><li>安全答题：即时反馈答案依据</li><li>三角色学习：体验、劝阻、观察风险</li><li>场景复盘：提炼下一次可执行的安全动作</li></ul>
+              <h3>选择学习方式</h3>
+              <p>一边通过答题巩固基础安全知识，一边进入官方案例库改编的校园安全情景，选择体验者、帮助者或观察者身份做判断。</p>
+              <ul class="plain-list"><li>安全答题：即时反馈答案依据</li><li>三角色学习：体验、帮助、观察风险</li><li>场景复盘：提炼下一次可执行的安全动作</li></ul>
             </div>
             <div class="learning-mode-switch" aria-label="选择知识学习方式">
               <button class="learning-mode-button active" type="button" data-learning-mode="quiz"><span>安全答题</span><small>基础知识即时练习</small></button>
-              <button class="learning-mode-button" type="button" data-learning-mode="story"><span>三角色学习模式</span><small>进入沉浸式诈骗情景</small></button>
+              <button class="learning-mode-button" type="button" data-learning-mode="story"><span>三角色学习模式</span><small>进入沉浸式校园安全情景</small></button>
             </div>
             <div class="quiz-card learning-section active" data-learning-section="quiz">
               <div class="quiz-meta"><span id="quizProgress">第 1 题</span><strong id="quizScore">得分 0</strong></div>
@@ -78,13 +63,13 @@
               <div class="story-game-head">
                 <div>
                   <span class="story-kicker">三角色剧情学习</span>
-                  <h3>选择一个情景，进入反诈剧情</h3>
-                  <p>点击图片场景后选择身份。角色一旦进入剧情，中途不能退出，需要走到结局后再返回。</p>
+                  <h3>选择一个案例，进入校园安全剧情</h3>
+                  <p>案例来自审核通过的校园安全案例库，已完成信息脱敏。选择身份后进入剧情，中途不能退出，需要走到结局后再返回。</p>
                 </div>
                 <strong id="gameStatus">选择场景</strong>
               </div>
 
-              <div class="scene-gallery" id="scenarioGallery" aria-label="选择诈骗情景"></div>
+              <div class="scene-gallery" id="scenarioGallery" aria-label="选择校园安全情景"></div>
 
               <div class="role-stage" id="roleStage" hidden>
                 <div class="selected-scene" id="selectedScenePreview"></div>
@@ -123,43 +108,14 @@
                 <div class="ending-report" id="endingReport"></div>
                 <button class="secondary-action" type="button" id="startOverStory">返回场景选择</button>
               </div>
-            </div>          </div>
-        </section>
-        <section class="tab-panel" id="report" aria-label="隐患上报">
-          <div class="module-grid report-single">
-            <div class="report-link-card">
-              <h3>隐患上报</h3>
-              <p>请通过飞书表单提交校园安全隐患信息。</p>
-              <a class="primary-link-button" href="https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&view=vewoiUIlNk">打开隐患上报表单</a>
             </div>
-          </div>
-        </section>
-        <section class="tab-panel" id="help" aria-label="一键求助">
-          <div class="module-grid help-single">
-            <div class="help-panel"><div class="phone-visual" aria-hidden="true"><span></span></div><strong>保卫处求助电话</strong><p>022-123456</p><div class="help-note">遇到紧急情况请及时联系保卫处。</div><button class="danger-button" type="button" id="callButton">一键求助</button></div>
           </div>
         </section>
       </section>
     </main>
 
-    <footer class="site-footer"><span>南开安全卫士</span><span>校园安全服务平台</span></footer>
+    <footer class="site-footer"><span>南开安全卫士</span><span>校园安全知识学习</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
     <script src="app.js"></script>
   </body>
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

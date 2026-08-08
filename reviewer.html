@@ -82,18 +82,35 @@
         document.querySelector('#adminSaveState').textContent = text;
       }
 
+      function isStaticPagesHost() {
+        return location.hostname.endsWith("github.io");
+      }
+
+      function backendUnavailableMessage() {
+        return "当前页面运行在 GitHub Pages 静态部署中，无法连接 MySQL 数据库。请使用学校服务器或本地 Node 后端地址访问本工作台。";
+      }
+
+      async function readApiJson(endpoint, options = {}) {
+        if (isStaticPagesHost()) throw new Error(backendUnavailableMessage());
+        const response = await fetch(endpoint, { cache: "no-store", ...options });
+        if (response.status === 401) {
+          const next = encodeURIComponent(location.pathname || "/reviewer.html");
+          location.href = "/api/auth/login?role=reviewer&next=" + next;
+          throw new Error("尚未登录，正在跳转飞书验证。");
+        }
+        if (response.status === 403) throw new Error("当前飞书账号没有访问该工作台的权限。");
+        if (!response.ok) throw new Error("后端接口返回 " + response.status + "，请确认 Node 后端和 MySQL 正常运行。");
+        return response.json();
+      }
+
       async function fetchCaseLibrary() {
-        const response = await fetch('/api/cases', { cache: 'no-store' });
-        if (!response.ok) throw new Error('案例库读取失败');
-        libraryState = await response.json();
+        libraryState = await readApiJson('/api/cases');
         libraryState.cases = (libraryState.cases || []).map((item) => ({ ...item, reviewStatus: normalizeReviewStatus(item.reviewStatus) }));
         updateSaveState(`后端案例库：${libraryState.cases.length} 个案例`);
       }
 
       async function fetchCollectionStatus() {
-        const response = await fetch('/api/collection/status', { cache: 'no-store' });
-        if (!response.ok) throw new Error('采集状态读取失败');
-        return response.json();
+        return readApiJson('/api/collection/status');
       }
 
       function renderCollectionStatus(collection) {
@@ -424,8 +441,8 @@
           renderSources();
           refreshCollectionStatus();
         } catch (error) {
-          updateSaveState('后端未连接');
-          document.querySelector('#adminReviewList').innerHTML = '<p class="admin-empty">案例库读取失败，请确认后端服务已启动。</p>';
+          updateSaveState(error.message.includes('GitHub Pages') ? '静态页面不能连接数据库' : '需要登录或后端服务');
+          document.querySelector('#adminReviewList').innerHTML = '<p class="admin-empty">' + error.message + '</p>';
           document.querySelector('#adminReviewDetail').innerHTML = '';
         }
       }
@@ -433,8 +450,7 @@
       document.querySelector('#runCollectionButton')?.addEventListener('click', async () => {
         try {
           document.querySelector('#collectionStatusGrid').innerHTML = '<article><span>状态</span><strong>正在采集</strong><p>正在采集并查重。</p></article>';
-          const response = await fetch('/api/collection/run', { method: 'POST' });
-          if (!response.ok) throw new Error('采集失败');
+          await readApiJson('/api/collection/run', { method: 'POST', cache: 'no-store' });
           await fetchCaseLibrary();
           renderStatusTabs();
           renderReviewList();

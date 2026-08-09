@@ -32,6 +32,10 @@
           <article><span>状态</span><strong>读取中</strong><p>正在连接后端。</p></article>
         </div>
       </section>
+      <section class="editor-notification-panel" id="editorNotificationPanel" aria-label="编辑员通知">
+        <div class="editor-notification-head"><strong>编辑员通知</strong><span id="notificationStatusText">读取中</span></div>
+        <div class="editor-notification-list" id="editorNotificationList"><p class="admin-empty">正在读取通知记录。</p></div>
+      </section>
 <section class="workspace admin-workspace admin-review-board">
         <div class="workspace-head">
           <div><p class="eyebrow">Review Desk</p><h2>待办案例</h2></div>
@@ -112,6 +116,38 @@
 
       async function fetchCollectionStatus() {
         return readApiJson('/api/collection/status');
+      }
+
+      async function fetchNotifications() {
+        return readApiJson('/api/notifications?role=editor');
+      }
+
+      function renderNotifications(payload) {
+        const panel = document.querySelector('#editorNotificationPanel');
+        const list = document.querySelector('#editorNotificationList');
+        const status = document.querySelector('#notificationStatusText');
+        if (!panel || !list || !status) return;
+        const notifications = payload.notifications || [];
+        status.textContent = notifications.length ? '最近 ' + notifications.length + ' 条' : '暂无通知';
+        if (!notifications.length) {
+          list.innerHTML = '<p class="admin-empty">暂无采集通知。系统发现新增待完善线索后，会在这里提醒编辑员。</p>';
+          return;
+        }
+        list.innerHTML = notifications.slice(0, 5).map((item) => {
+          const webhookLabel = item.webhookStatus === 'sent' ? '已推送飞书' : item.webhookStatus === 'failed' ? '推送失败' : '待接入飞书 webhook';
+          return '<article class="editor-notification-item"><div><span>' + webhookLabel + '</span><strong>' + escapeHtml(item.title) + '</strong><p>' + escapeHtml(item.message).replace(/\n/g, '<br />') + '</p></div><time>' + escapeHtml(item.createdAt || '') + '</time></article>';
+        }).join('');
+      }
+
+      async function refreshNotifications() {
+        try {
+          renderNotifications(await fetchNotifications());
+        } catch (error) {
+          const status = document.querySelector('#notificationStatusText');
+          const list = document.querySelector('#editorNotificationList');
+          if (status) status.textContent = '读取失败';
+          if (list) list.innerHTML = '<p class="admin-empty">' + error.message + '</p>';
+        }
       }
 
       function renderCollectionStatus(collection) {
@@ -236,17 +272,36 @@
       function renderReviewList() {
         if (activeRole === 'reviewer' && activeStatus === 'approved') { renderPublishedBrowser(); return; }
         const list = document.querySelector('#adminReviewList');
+        const detail = document.querySelector('#adminReviewDetail');
+        const layout = document.querySelector('.admin-review-layout');
         const cases = statusCases(activeStatus);
         if (!cases.length) {
           list.innerHTML = '<p class="admin-empty">当前没有这个状态的案例。</p>';
           activeCaseId = '';
-          renderReviewDetail(null);
+          detail.hidden = true;
+          detail.innerHTML = '';
+          layout?.classList.add('detail-collapsed');
           return;
         }
-        if (!cases.some((item) => item.id === activeCaseId)) activeCaseId = cases[0].id;
-        list.innerHTML = cases.map((item) => `<button class="admin-case-row ${item.id === activeCaseId ? 'active' : ''}" type="button" data-case-id="${item.id}"><span>${caseStatusLabel(item.reviewStatus)}</span><strong>${item.title}</strong><small>${item.safetyType} · ${item.campusScene}</small></button>`).join('');
-        list.querySelectorAll('[data-case-id]').forEach((button) => button.addEventListener('click', () => { activeCaseId = button.dataset.caseId; renderReviewList(); renderReviewDetail(findCase(activeCaseId)); }));
-        renderReviewDetail(findCase(activeCaseId));
+        const selectedCase = cases.find((item) => item.id === activeCaseId);
+        list.innerHTML = cases.map((item) => {
+          const selected = item.id === activeCaseId;
+          const source = item.sourceName || '来源待补充';
+          return `<button class="admin-case-row compact ${selected ? 'active' : ''}" type="button" data-case-id="${item.id}"><span>${caseStatusLabel(item.reviewStatus)}</span><strong>${escapeHtml(item.title)}</strong><small>${escapeHtml(item.safetyType)} · ${escapeHtml(item.campusScene)} · ${escapeHtml(source)}</small></button>`;
+        }).join('');
+        list.querySelectorAll('[data-case-id]').forEach((button) => button.addEventListener('click', () => {
+          activeCaseId = button.dataset.caseId;
+          renderReviewList();
+        }));
+        if (!selectedCase) {
+          detail.hidden = true;
+          detail.innerHTML = '';
+          layout?.classList.add('detail-collapsed');
+          return;
+        }
+        layout?.classList.remove('detail-collapsed');
+        detail.hidden = false;
+        renderReviewDetail(selectedCase);
       }
 
       function findCase(id) {
@@ -402,6 +457,7 @@
             renderReviewList();
             renderSources();
             refreshCollectionStatus();
+          refreshNotifications();
           } catch (error) {
             updateSaveState('整理内容保存失败');
           }
@@ -457,6 +513,7 @@
           renderReviewList();
           renderSources();
           refreshCollectionStatus();
+          refreshNotifications();
         } catch (error) {
           document.querySelector('#collectionStatusGrid').innerHTML = '<article><span>状态</span><strong>采集失败</strong><p>请检查网络或官方来源是否可访问。</p></article>';
         }

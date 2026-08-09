@@ -1394,25 +1394,24 @@ body.story-active { overflow: hidden; }
 /* Production-style admin console */
 .admin-console {
   display: grid;
-  gap: 16px;
-  padding-top: 26px;
+  gap: 10px;
+  padding-top: 18px;
 }
 .admin-toolbar {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 14px;
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 18px 20px;
+  padding: 12px 14px;
   border: 1px solid var(--line);
   border-radius: 8px;
   background: #ffffff;
-  box-shadow: 0 12px 30px rgba(31, 41, 51, 0.06);
 }
 .admin-toolbar h1 {
-  margin: 2px 0 0;
-  font-size: 28px;
+  margin: 1px 0 0;
+  font-size: 22px;
   letter-spacing: 0;
 }
 .admin-toolbar-actions {
@@ -1427,15 +1426,45 @@ body.story-active { overflow: hidden; }
   margin: 0 auto;
 }
 .admin-console .admin-collection-grid {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #f8fbfc;
 }
 .admin-console .admin-collection-grid article {
-  min-height: 92px;
-  background: #f8fbfc;
+  display: flex;
+  align-items: baseline;
+  gap: 7px;
+  min-height: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+.admin-console .admin-collection-grid article + article {
+  padding-left: 10px;
+  border-left: 1px solid var(--line);
+}
+.admin-console .admin-collection-grid span {
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 800;
+}
+.admin-console .admin-collection-grid strong {
+  color: var(--ink);
+  font-size: 14px;
+  font-weight: 900;
+}
+.admin-console .admin-collection-grid p {
+  display: none;
 }
 .admin-console .admin-review-board {
   width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
+  margin: 2px auto 0;
+  padding-top: 18px;
 }
 .admin-console .admin-review-board .workspace-head {
   margin-bottom: 4px;
@@ -1446,7 +1475,8 @@ body.story-active { overflow: hidden; }
     flex-direction: column;
   }
   .admin-toolbar-actions { justify-content: flex-start; }
-  .admin-console .admin-collection-grid { grid-template-columns: 1fr; }
+  .admin-console .admin-collection-grid { display: grid; grid-template-columns: 1fr; }
+  .admin-console .admin-collection-grid article + article { padding-left: 0; padding-top: 8px; border-left: 0; border-top: 1px solid var(--line); }
 }
 
 .admin-entry-page { min-height: calc(100vh - 160px); align-content: start; }
@@ -1474,3 +1504,62 @@ body.story-active { overflow: hidden; }
 .admin-entry-card strong { font-size: 24px; }
 .admin-entry-card p { margin: 0; color: var(--muted); line-height: 1.65; }
 @media (max-width: 720px) { .admin-entry-grid { grid-template-columns: 1fr; } }
+
+.admin-review-layout.detail-collapsed {
+  grid-template-columns: 1fr;
+}
+.admin-review-detail[hidden] {
+  display: none;
+}
+.admin-case-row.compact {
+  min-height: 0;
+  padding: 10px 12px;
+  gap: 4px;
+}
+.admin-case-row.compact strong {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  font-size: 15px;
+  line-height: 1.35;
+}
+.admin-case-row.compact small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editor-notification-panel {
+  display: grid;
+  gap: 8px;
+  width: min(1180px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+.editor-notification-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.editor-notification-head strong { font-size: 15px; }
+.editor-notification-head span { color: var(--muted); font-size: 12px; font-weight: 800; }
+.editor-notification-list { display: grid; gap: 8px; }
+.editor-notification-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 12px;
+  padding: 9px 10px;
+  border-radius: 8px;
+  background: #f8fbfc;
+  border: 1px solid var(--line);
+}
+.editor-notification-item span { color: var(--blue); font-size: 12px; font-weight: 900; }
+.editor-notification-item strong { display: block; margin-top: 3px; font-size: 14px; }
+.editor-notification-item p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
+.editor-notification-item time { color: var(--muted); font-size: 12px; white-space: nowrap; }
+@media (max-width: 760px) { .editor-notification-item { grid-template-columns: 1fr; } }

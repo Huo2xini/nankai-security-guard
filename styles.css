@@ -1530,36 +1530,3 @@ body.story-active { overflow: hidden; }
   white-space: nowrap;
 }
 
-.editor-notification-panel {
-  display: grid;
-  gap: 8px;
-  width: min(1180px, calc(100% - 32px));
-  margin: 0 auto;
-  padding: 10px 12px;
-  border: 1px solid var(--line);
-  border-radius: 8px;
-  background: #ffffff;
-}
-.editor-notification-head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 12px;
-}
-.editor-notification-head strong { font-size: 15px; }
-.editor-notification-head span { color: var(--muted); font-size: 12px; font-weight: 800; }
-.editor-notification-list { display: grid; gap: 8px; }
-.editor-notification-item {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 12px;
-  padding: 9px 10px;
-  border-radius: 8px;
-  background: #f8fbfc;
-  border: 1px solid var(--line);
-}
-.editor-notification-item span { color: var(--blue); font-size: 12px; font-weight: 900; }
-.editor-notification-item strong { display: block; margin-top: 3px; font-size: 14px; }
-.editor-notification-item p { margin: 4px 0 0; color: var(--muted); font-size: 12px; line-height: 1.55; }
-.editor-notification-item time { color: var(--muted); font-size: 12px; white-space: nowrap; }
-@media (max-width: 760px) { .editor-notification-item { grid-template-columns: 1fr; } }

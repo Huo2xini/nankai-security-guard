@@ -224,12 +224,23 @@
           <div class="admin-published-head"><div><span>已发布案例库</span><h3>${activePublishedType === '全部' ? '全部安全类型' : activePublishedType}</h3><p>按安全类型和典型校园情景浏览，支持搜索标题、来源、风险点和安全动作。</p></div><strong>${results.length} 个结果</strong></div>
           <div class="admin-search-row"><input id="publishedSearchInput" type="search" placeholder="搜索案例、来源、风险信号或安全动作" value="${publishedSearchQuery.replace(/"/g, '&quot;')}" /></div>
           <div class="admin-scene-filter">${activeCategory.scenes.map((scene) => `<button class="${scene === activePublishedScene ? 'active' : ''}" type="button" data-scene="${scene}">${scene}</button>`).join('')}</div>
-          <div class="admin-published-grid">${results.length ? results.map((item) => `<article class="admin-published-card"><span>${item.safetyType} · ${item.campusScene}</span><strong>${item.title}</strong><p>${item.hook || item.subtitle || ''}</p><small>${item.sourceName || '来源待补充'}</small><div>${(item.warningSigns || []).slice(0, 3).map((sign) => `<em>${sign}</em>`).join('')}</div><button class="secondary-button" type="button" data-revise-approved="${item.id}">撤回并退回编辑员</button></article>`).join('') : '<p class="admin-empty">没有找到匹配的已发布案例。</p>'}</div>
+          <div class="admin-published-grid">${results.length ? results.map((item) => `<article class="admin-published-card"><span>${item.safetyType} · ${item.campusScene}</span><strong>${item.title}</strong><p>${item.hook || item.subtitle || ''}</p><small>${item.sourceName || '来源待补充'}</small><div>${(item.warningSigns || []).slice(0, 3).map((sign) => `<em>${sign}</em>`).join('')}</div><button class="primary-link-button" type="button" data-view-approved="${item.id}">查看详情</button><button class="secondary-button" type="button" data-revise-approved="${item.id}">撤回并退回编辑员</button></article>`).join('') : '<p class="admin-empty">没有找到匹配的已发布案例。</p>'}</div>
         `;
         const searchInput = document.querySelector('#publishedSearchInput');
         searchInput.addEventListener('input', (event) => { publishedSearchQuery = event.target.value; renderPublishedBrowser(); document.querySelector('#publishedSearchInput')?.focus(); });
-        detail.querySelectorAll('[data-scene]').forEach((button) => button.addEventListener('click', () => { activePublishedScene = button.dataset.scene; renderPublishedBrowser(); }));
+        detail.querySelectorAll('[data-scene]').forEach((button) => button.addEventListener('click', () => { activePublishedScene = button.dataset.scene; activeCaseId = ''; renderPublishedBrowser(); }));
+        detail.querySelectorAll('[data-view-approved]').forEach((button) => button.addEventListener('click', () => showPublishedDetail(button.dataset.viewApproved)));
         detail.querySelectorAll('[data-revise-approved]').forEach((button) => button.addEventListener('click', () => updateCaseStatus(button.dataset.reviseApproved, 'revision', 'reviewer')));
+      }
+
+      function showPublishedDetail(id) {
+        const item = findCase(id);
+        if (!item) return;
+        activeCaseId = id;
+        renderReviewDetail(item);
+        const detail = document.querySelector('#adminReviewDetail');
+        detail.insertAdjacentHTML('afterbegin', '<button class="secondary-button admin-back-button" type="button" id="backToPublishedButton">返回已发布列表</button>');
+        document.querySelector('#backToPublishedButton')?.addEventListener('click', () => { activeCaseId = ''; renderPublishedBrowser(); });
       }
 
       function renderReviewList() {
@@ -320,13 +331,13 @@
         const disabledSubmit = allPassed ? '' : 'disabled aria-disabled="true"';
         const disabledReturn = allPassed ? 'disabled aria-disabled="true"' : '';
         if (activeRole === 'editor') return `<button class="primary-link-button" type="button" id="submitCaseButton" ${disabledSubmit}>提交给审核员</button>`;
-        if (status === 'approved') return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>撤回并退回编辑员</button>`;
+        if (status === 'approved') return `<button class="secondary-button" type="button" id="reviseCaseButton">撤回并退回编辑员</button>`;
         return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>退回编辑员修改</button><button class="primary-link-button" type="button" id="approveCaseButton" ${disabledSubmit}>审核通过并发布</button>`;
       }
 
       function bindActionButtons(item, allPassed) {
         document.querySelector('#submitCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'review', 'editor'); });
-        document.querySelector('#reviseCaseButton')?.addEventListener('click', () => { if (!allPassed) updateCaseStatus(item.id, 'revision', 'reviewer'); });
+        document.querySelector('#reviseCaseButton')?.addEventListener('click', () => { if (normalizeReviewStatus(item.reviewStatus) === 'approved' || !allPassed) updateCaseStatus(item.id, 'revision', 'reviewer'); });
         document.querySelector('#approveCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'approved', 'reviewer'); });
       }
 

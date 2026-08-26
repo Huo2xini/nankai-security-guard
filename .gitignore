@@ -1,0 +1,13 @@
+.env
+.env.*
+!.env.example
+node_modules/
+*.log
+*.tmp
+*.tmp.*
+__pycache__/
+*.pyc
+*.zip
+.idea/
+.agents/
+.codex/

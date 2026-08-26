@@ -153,7 +153,7 @@
       }
 
       async function patchCaseDetails(id, details) {
-        const response = await fetch(`/api/cases/${encodeURIComponent(id)}`, {
+        const response = await fetch('/api/cases/' + encodeURIComponent(id), {
           method: 'PATCH',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(details)
@@ -161,7 +161,24 @@
         if (!response.ok) throw new Error('案例保存失败');
         const result = await response.json();
         libraryState = result.database;
-        updateSaveState(`整理内容已保存：${new Date().toLocaleTimeString()}`);
+        updateSaveState('整理内容已保存：' + new Date().toLocaleTimeString());
+      }
+
+      async function submitCaseDetails(id, details) {
+        const response = await fetch('/api/cases/' + encodeURIComponent(id) + '/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(details)
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          const message = Array.isArray(result.failures) ? result.failures.join('；') : (result.error || '保存并提交失败');
+          const error = new Error(message);
+          error.result = result;
+          throw error;
+        }
+        libraryState = result.database;
+        return result;
       }
 
       function statusHint(status) {
@@ -339,13 +356,13 @@
         const status = normalizeReviewStatus(item.reviewStatus);
         const disabledSubmit = allPassed ? '' : 'disabled aria-disabled="true"';
         const disabledReturn = allPassed ? 'disabled aria-disabled="true"' : '';
-        if (activeRole === 'editor') return `<button class="primary-link-button" type="button" id="submitCaseButton" ${disabledSubmit}>提交给审核员</button>`;
+        if (activeRole === 'editor') return `<button class="primary-link-button" type="button" id="submitCaseButton">保存并提交给审核员</button>`;
         if (status === 'approved') return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>撤回并退回编辑员</button>`;
         return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>退回编辑员修改</button><button class="primary-link-button" type="button" id="approveCaseButton" ${disabledSubmit}>审核通过并发布</button>`;
       }
 
       function bindActionButtons(item, allPassed) {
-        document.querySelector('#submitCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'review', 'editor'); });
+        document.querySelector('#submitCaseButton')?.addEventListener('click', () => { submitEditedCase(item); });
         document.querySelector('#reviseCaseButton')?.addEventListener('click', () => { if (!allPassed) updateCaseStatus(item.id, 'revision', 'editor'); });
         document.querySelector('#approveCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'approved', 'reviewer'); });
       }
@@ -394,38 +411,91 @@
         });
       }
 
+      function editorDetailsFromForm(form) {
+        const formData = new FormData(form);
+        const value = (name) => String(formData.get(name) || '').trim();
+        return {
+          safetyType: value('safetyType'),
+          campusScene: value('campusScene'),
+          sourceName: value('sourceName'),
+          sourceUrl: value('sourceUrl'),
+          sourceDate: value('sourceDate'),
+          subtitle: value('subtitle'),
+          title: value('title'),
+          hook: value('hook'),
+          escalation: value('escalation'),
+          desensitization: value('desensitization'),
+          warningSigns: splitList(formData.get('warningSigns')),
+          safeActions: splitList(formData.get('safeActions'))
+        };
+      }
+
+      function caseReadyFailures(item) {
+        const checks = [
+          ['来源链接需要使用 https 官网或权威来源', /^https:\/\//.test(item.sourceUrl || '')],
+          ['需要填写明确的脱敏说明', isCleanDesensitization(item.desensitization)],
+          ['需要选择安全类型和具体校园情景', Boolean(item.safetyType) && isSpecificScene(item.campusScene)],
+          ['风险信号至少 3 条，且不能是模板句', isUsefulList(item.warningSigns)],
+          ['安全动作至少 3 条，且需要可执行', isUsefulList(item.safeActions)]
+        ];
+        return checks.filter(([, checked]) => !checked).map(([text]) => text);
+      }
+
+      async function saveEditorForm(item) {
+        const form = document.querySelector('#caseEditForm');
+        if (!form) return item;
+        const details = editorDetailsFromForm(form);
+        await patchCaseDetails(item.id, details);
+        return { ...item, ...details };
+      }
+
       function bindEditorForm(item) {
         const form = document.querySelector('#caseEditForm');
         if (!form) return;
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
-          const formData = new FormData(form);
           try {
             updateSaveState('正在保存整理内容');
-            await patchCaseDetails(item.id, {
-              safetyType: formData.get('safetyType').trim(),
-              campusScene: formData.get('campusScene').trim(),
-              sourceName: formData.get('sourceName').trim(),
-              sourceUrl: formData.get('sourceUrl').trim(),
-              sourceDate: formData.get('sourceDate').trim(),
-              subtitle: formData.get('subtitle').trim(),
-              title: formData.get('title').trim(),
-              hook: formData.get('hook').trim(),
-              escalation: formData.get('escalation').trim(),
-              desensitization: formData.get('desensitization').trim(),
-              warningSigns: splitList(formData.get('warningSigns')),
-              safeActions: splitList(formData.get('safeActions'))
-            });
+            await saveEditorForm(item);
             activeCaseId = item.id;
             renderStatusTabs();
             renderReviewList();
             renderSources();
             refreshCollectionStatus();
           } catch (error) {
-            updateSaveState('整理内容保存失败');
+            updateSaveState('整理内容保存失败：请确认登录状态和后端服务');
           }
         });
       }
+
+      async function submitEditedCase(item) {
+        const button = document.querySelector('#submitCaseButton');
+        try {
+          if (button) {
+            button.disabled = true;
+            button.textContent = '正在保存并提交...';
+          }
+          updateSaveState('正在保存并提交审核');
+          const form = document.querySelector('#caseEditForm');
+          const details = form ? editorDetailsFromForm(form) : item;
+          const noteBox = document.querySelector('#reviewNote');
+          await submitCaseDetails(item.id, { ...details, reviewNote: noteBox ? noteBox.value.trim() : item.reviewNote || '' });
+          activeStatus = 'draft';
+          activeCaseId = '';
+          renderStatusTabs();
+          renderReviewList();
+          renderSources();
+          refreshCollectionStatus();
+          updateSaveState('已保存并提交给审核员');
+        } catch (error) {
+          updateSaveState(error.message ? '还不能提交：' + error.message : '保存或提交失败：请确认登录状态和后端服务');
+          if (button) {
+            button.disabled = false;
+            button.textContent = '保存并提交给审核员';
+          }
+        }
+      }
+
       async function updateCaseStatus(id, status, nextRole) {
         const item = findCase(id);
         if (!item) return;

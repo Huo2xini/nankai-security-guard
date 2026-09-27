@@ -3,6 +3,9 @@ const featureCards = document.querySelectorAll(".feature-card[data-tab]");
 const panels = document.querySelectorAll(".tab-panel");
 const toast = document.querySelector("#toast");
 const callButton = document.querySelector("#callButton");
+const criticalAlarmButton = document.querySelector("#criticalAlarmButton");
+const supplementPanel = document.querySelector("#supplementPanel");
+const supplementForm = document.querySelector("#supplementForm");
 const quizProgress = document.querySelector("#quizProgress");
 const quizScore = document.querySelector("#quizScore");
 const quizQuestion = document.querySelector("#quizQuestion");
@@ -49,25 +52,83 @@ const answers = [
   { keys: ["隐患", "上报", "流程"], text: "隐患上报建议填写隐患类型、地点、描述、图片、联系人、联系电话和紧急程度。正式版可写入飞书多维表格并同步处置状态。" },
 ];
 
-const questionBank = [
-  { question: "一个陌生人来到寝室，自称公寓管理服务中心老师，要收取每人 200 元宿舍押金。你应该怎么做？", options: ["配合其工作，向其交押金", "问辅导员或宿管核实，绝不能轻易交钱", "反正毕业会退，先交了再说", "主动帮他去收钱"], answer: 1, explain: "涉及收费时要先向辅导员、宿管或学校部门核实，不能轻易交钱。" },
-  { question: "接到自称警察的电话，说你涉嫌违法，需要查账户并按电话指令操作。正确做法是？", options: ["按照对方指令执行", "挂断电话并报告学校保卫部门或报警", "向其提供账号密码", "立刻转到对方提供的安全账户"], answer: 1, explain: "公检法不会通过电话要求转账或提供账户密码。" },
-  { question: "收到银行卡升级短信，需要点击链接完成实名认证，否则影响使用。正确做法是？", options: ["拨打银行官方咨询电话核实", "点开短信中的链接看看", "点击链接看看网站像不像真的", "赶紧按要求办理认证"], answer: 0, explain: "短信链接可能是钓鱼网站，应通过官方电话或官方 App 核实。" },
-  { question: "校园火灾的常见起因包括哪些？", options: ["明火引燃", "乱拉乱接电线", "使用电器不当", "以上都包括"], answer: 3, explain: "明火、电线、电器和宿舍大功率电器都可能造成火灾风险。" },
-  { question: "灭火器气压表指针在什么颜色范围内通常表示可使用？", options: ["红色", "绿色", "黄色", "任何颜色"], answer: 1, explain: "绿色范围通常表示灭火器压力正常。" },
-  { question: "遇到陌生人要求扫码领取补贴或礼品，并让你填写银行卡号和验证码，正确做法是？", options: ["按要求填写", "只填写验证码", "拒绝填写并通过官方渠道核实", "让同学先试试"], answer: 2, explain: "银行卡号、验证码等敏感信息不能提供给陌生人。" },
-  { question: "宿舍内发现有人使用违规大功率电器，比较合适的做法是？", options: ["提醒停止使用并向宿管或辅导员反映", "帮忙一起使用", "只要没起火就不用管", "拍照发到网上"], answer: 0, explain: "违规大功率电器容易引发火灾，应及时提醒并通过正规渠道处理。" },
-  { question: "消防通道和安全出口应当保持什么状态？", options: ["可以临时堆放杂物", "保持畅通", "晚上可以锁闭", "只在检查时清理"], answer: 1, explain: "消防通道和安全出口必须保持畅通，不能占用、堵塞或锁闭。" },
-  { question: "收到自称客服的电话，说订单异常需要退款，并要求你下载会议软件共享屏幕，正确做法是？", options: ["立即共享屏幕", "按对方提示转账", "挂断并通过官方平台核实", "把验证码告诉对方"], answer: 2, explain: "冒充客服退款是常见诈骗，不能共享屏幕或透露验证码。" },
-  { question: "在校园内发现电动车飞线充电，应该怎么处理？", options: ["继续观察", "上报隐患并说明位置", "自己拔掉所有电线", "拍照嘲笑车主"], answer: 1, explain: "飞线充电存在火灾风险，应通过隐患上报说明位置和情况。" },
-  { question: "公共 WiFi 环境下，哪种行为更安全？", options: ["登录网银并转账", "输入所有账号密码", "避免进行支付和重要账号登录", "关闭手机锁屏密码"], answer: 2, explain: "陌生公共网络可能存在信息泄露风险，应避免重要操作。" },
-  { question: "实验室或宿舍发现酒精、汽油等易燃物品大量存放，正确做法是？", options: ["靠近闻一闻", "随意搬动", "及时提醒并报告相关管理人员", "放在阳光下晾晒"], answer: 2, explain: "易燃易爆物品应规范存放，发现隐患要及时报告。" },
-  { question: "收到陌生邮件附件，标题写着考试答案或补助名单，正确做法是？", options: ["直接打开", "转发给同学", "核实来源，不随意点击附件或链接", "输入账号密码查看"], answer: 2, explain: "陌生附件和链接可能包含钓鱼或恶意程序，应先核实来源。" },
-  { question: "遇到可疑人员在宿舍楼内推销、收费或索要个人信息，应该怎么办？", options: ["主动提供信息", "向宿管、辅导员或保卫部门反映", "帮他介绍同学", "不管不问"], answer: 1, explain: "宿舍楼内可疑推销和收费应及时向管理人员反映。" },
-  { question: "隐患上报时，哪项信息最有助于后续处置？", options: ["只写很危险", "准确地点、隐患描述、照片和联系方式", "不写地点", "只选择紧急程度"], answer: 1, explain: "准确地点、描述、照片和联系方式有助于快速核实和处置。" }
-];
+let quizQuestionBank = [];
+let activeQuizTask = null;
+let quizAttemptReported = false;
 
-const roleLabels = { experiencer: "体验者", helper: "帮助者", observer: "观察者" };
+function normalizeQuizQuestion(item) {
+  const options = Array.isArray(item?.options) ? item.options.map((value) => String(value || "").trim()) : [];
+  const answer = Number(item?.answer);
+  if (!item?.id || !item?.category || !item?.question || options.length !== 4 || options.some((value) => !value) || !Number.isInteger(answer) || answer < 0 || answer > 3 || !item?.explain) return null;
+  return { ...item, options, answer, explain: String(item.explain).trim(), scene: String(item.scene || "未分类场景").trim() };
+}
+
+async function loadQuizQuestions() {
+  const sources = ["/api/quiz-questions", "data/quiz-questions.json"];
+  for (const source of sources) {
+    try {
+      const response = await fetch(source, { cache: "no-store" });
+      if (!response.ok) throw new Error("题库读取失败");
+      const payload = await response.json();
+      const questions = Array.isArray(payload?.questions) ? payload.questions.map(normalizeQuizQuestion).filter(Boolean) : [];
+      if (questions.length) {
+        quizQuestionBank = questions;
+        return;
+      }
+    } catch (error) {
+      console.warn("题库来源不可用", source, error);
+    }
+  }
+}
+
+async function loadActiveQuizTask() {
+  try {
+    const response = await fetch("/api/quiz-task/active", { cache: "no-store" });
+    if (!response.ok) throw new Error("No active task");
+    const payload = await response.json();
+    activeQuizTask = payload.task || null;
+  } catch (error) {
+    activeQuizTask = null;
+  }
+}
+
+function takeQuizQuestions(items, count, selectedIds, selectedScenes, allowRepeatedScene = false) {
+  const picked = [];
+  for (const item of shuffleQuestions(items)) {
+    if (picked.length >= count || selectedIds.has(item.id)) continue;
+    const sceneKey = item.category + "::" + item.scene;
+    if (!allowRepeatedScene && selectedScenes.has(sceneKey)) continue;
+    picked.push(item);
+    selectedIds.add(item.id);
+    selectedScenes.add(sceneKey);
+  }
+  if (picked.length < count && !allowRepeatedScene) {
+    return picked.concat(takeQuizQuestions(items, count - picked.length, selectedIds, selectedScenes, true));
+  }
+  return picked;
+}
+
+function selectQuizQuestions(items, count) {
+  const fresh = items.filter((item) => !previousQuizQuestionTexts.has(item.question));
+  const pool = fresh.length >= count ? fresh : items;
+  const selected = [];
+  const selectedIds = new Set();
+  const selectedScenes = new Set();
+  const fraud = pool.filter((item) => item.category === "反诈骗");
+  selected.push(...takeQuizQuestions(fraud, Math.min(2, count), selectedIds, selectedScenes));
+  const otherCategories = [...new Set(pool.map((item) => item.category).filter((category) => category !== "反诈骗"))];
+  for (const category of shuffleQuestions(otherCategories)) {
+    if (selected.length >= count) break;
+    selected.push(...takeQuizQuestions(pool.filter((item) => item.category === category), 1, selectedIds, selectedScenes));
+  }
+  if (selected.length < count) {
+    selected.push(...takeQuizQuestions(pool.filter((item) => item.category !== "反诈骗"), count - selected.length, selectedIds, selectedScenes));
+  }
+  if (selected.length < count) {
+    selected.push(...takeQuizQuestions(pool, count - selected.length, selectedIds, selectedScenes, true));
+  }
+  return shuffleQuestions(selected);
+}
 
 const fallbackScenarios = [
   {
@@ -372,10 +433,12 @@ let activeScenarioIndex = 0;
 let activeStoryNode = "start";
 let scenarioTouchStartX = 0;
 let scenarioCarouselPosition = 1;
-const QUESTIONS_PER_ROUND = 5;
+const QUESTIONS_PER_ROUND = 10;
 let quizQuestions = [];
 let quizIndex = 0;
 let quizPoints = 0;
+let quizAttempts = [];
+let previousQuizQuestionTexts = new Set();
 
 function shuffleQuestions(items) {
   const shuffled = [...items];
@@ -387,9 +450,18 @@ function shuffleQuestions(items) {
 }
 
 function startQuizRound() {
-  quizQuestions = shuffleQuestions(questionBank).slice(0, QUESTIONS_PER_ROUND);
+  const selectedCategories = Array.isArray(activeQuizTask?.categories) ? activeQuizTask.categories : [];
+  const taskPool = selectedCategories.length
+    ? quizQuestionBank.filter((item) => selectedCategories.includes(item.category))
+    : quizQuestionBank;
+  const requestedCount = Number(activeQuizTask?.questionCount) || QUESTIONS_PER_ROUND;
+  const pool = taskPool.length ? taskPool : quizQuestionBank;
+  quizQuestions = selectQuizQuestions(pool, Math.min(Math.max(5, requestedCount), pool.length));
+  previousQuizQuestionTexts = new Set(quizQuestions.map((item) => item.question));
   quizIndex = 0;
   quizPoints = 0;
+  quizAttempts = [];
+  quizAttemptReported = false;
   renderQuiz();
 }
 let answered = false;
@@ -431,9 +503,10 @@ function renderQuiz() {
   const current = quizQuestions[quizIndex];
   answered = false;
   quizFinished = false;
-  quizProgress.textContent = `第 ${quizIndex + 1} / ${quizQuestions.length} 题`;
+  quizProgress.textContent = `第 ${quizIndex + 1} / ${quizQuestions.length} 题 · 随机练习`;
   quizScore.textContent = `得分 ${quizPoints}`;
   quizQuestion.textContent = current.question;
+  quizFeedback.className = "quiz-feedback";
   quizFeedback.textContent = "请选择一个答案。";
   nextQuestion.textContent = "下一题";
   quizOptions.innerHTML = "";
@@ -449,15 +522,66 @@ function renderQuiz() {
   });
 }
 
+function renderQuizReviewItem(item) {
+  const review = document.createElement("article");
+  review.className = "quiz-review-item";
+  const meta = document.createElement("span");
+  meta.className = "quiz-review-meta";
+  meta.textContent = `${item.category || "安全知识"} · ${item.scene || "重点复习"}`;
+  const title = document.createElement("strong");
+  title.textContent = item.question;
+  const answer = document.createElement("p");
+  answer.innerHTML = "<b>正确做法：</b>";
+  answer.append(document.createTextNode(item.options[item.answer]));
+  const reason = document.createElement("p");
+  reason.innerHTML = "<b>原因：</b>";
+  reason.append(document.createTextNode(item.explain));
+  review.append(meta, title, answer, reason);
+  return review;
+}
+
 function renderQuizResult() {
   quizFinished = true;
   answered = true;
+  const correctCount = quizAttempts.filter((item) => item.correct).length;
+  const incorrectAttempts = quizAttempts.filter((item) => !item.correct);
   quizProgress.textContent = "本轮完成";
-  quizScore.textContent = `总分 ${quizPoints}`;
-  quizQuestion.textContent = "本轮安全答题已完成";
-  quizOptions.innerHTML = "";
-  quizFeedback.textContent = `你已完成 ${quizQuestions.length} 道题，最终得分 ${quizPoints} 分。请继续保持安全意识，遇到可疑情况及时核实并联系学校相关部门。`;
+  quizScore.textContent = `正确 ${correctCount} / ${quizQuestions.length}`;
+  quizQuestion.textContent = incorrectAttempts.length ? "本轮错题复习" : "本轮知识点已全部掌握";
+  quizOptions.replaceChildren();
+  const summary = document.createElement("section");
+  summary.className = `quiz-round-summary ${incorrectAttempts.length ? "needs-review" : "all-correct"}`;
+  const summaryTitle = document.createElement("strong");
+  summaryTitle.textContent = incorrectAttempts.length ? `本轮有 ${incorrectAttempts.length} 个知识点需要复习` : "本轮 10 个知识点全部答对";
+  const summaryText = document.createElement("p");
+  summaryText.textContent = incorrectAttempts.length ? "请先阅读下方错题的正确做法和原因，再重新开始下一轮练习。" : "建议继续开始下一轮，巩固不同类别的校园安全知识。";
+  summary.append(summaryTitle, summaryText);
+  quizOptions.append(summary);
+  incorrectAttempts.forEach((item) => quizOptions.append(renderQuizReviewItem(item)));
+  quizFeedback.className = "quiz-feedback is-result";
+  quizFeedback.textContent = `本轮得分 ${quizPoints} 分。${incorrectAttempts.length ? "完成错题复习后，再开始下一轮练习。" : "继续保持安全意识，遇到可疑情况及时核实。"}`;
   nextQuestion.textContent = "重新开始";
+  reportQuizAttempt();
+}
+
+async function reportQuizAttempt() {
+  if (quizAttemptReported || !quizAttempts.length) return;
+  quizAttemptReported = true;
+  try {
+    const response = await fetch("/api/quiz-attempts", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        taskId: activeQuizTask?.id || "",
+        answers: quizAttempts.map((item) => ({ questionId: item.id, selectedAnswer: item.selectedAnswer }))
+      })
+    });
+    if (!response.ok) throw new Error("Quiz attempt was not accepted");
+  } catch (error) {
+    // A later round can retry when the network or sign-in state is restored.
+    console.warn("Unable to report quiz attempt", error);
+    quizAttemptReported = false;
+  }
 }
 
 function chooseAnswer(index) {
@@ -467,15 +591,25 @@ function chooseAnswer(index) {
   const optionButtons = quizOptions.querySelectorAll(".quiz-option");
 
   optionButtons.forEach((button, optionIndex) => {
+    button.disabled = true;
     if (optionIndex === current.answer) button.classList.add("correct");
     if (optionIndex === index && optionIndex !== current.answer) button.classList.add("wrong");
   });
 
-  if (index === current.answer) {
-    quizPoints += 20;
-    quizFeedback.textContent = `回答正确。${current.explain}`;
-  } else {
-    quizFeedback.textContent = `回答错误。${current.explain}`;
+  const isCorrect = index === current.answer;
+  quizAttempts.push({ ...current, selectedAnswer: index, correct: isCorrect });
+  quizFeedback.className = `quiz-feedback is-result ${isCorrect ? "correct" : "wrong"}`;
+  quizFeedback.replaceChildren();
+  const resultLabel = document.createElement("strong");
+  resultLabel.className = "quiz-result-label";
+  resultLabel.textContent = isCorrect ? "回答正确" : "回答错误";
+  const reason = document.createElement("span");
+  reason.className = "quiz-reason";
+  reason.textContent = "原因：" + current.explain;
+  quizFeedback.append(resultLabel, reason);
+
+  if (isCorrect) {
+    quizPoints += 10;
   }
   quizScore.textContent = `得分 ${quizPoints}`;
 }
@@ -707,6 +841,47 @@ function isMobileDevice() {
   return /Android|iPhone|iPad|iPod|Mobile|Windows Phone/i.test(ua) || (touchLikely && window.innerWidth <= 820);
 }
 
+function createIncidentId(prefix) {
+  const stamp = new Date().toISOString().replace(/\D/g, "").slice(2, 14);
+  const suffix = Math.random().toString(36).slice(2, 6).toUpperCase();
+  return `${prefix}-${stamp}-${suffix}`;
+}
+
+function saveDemoIncident(record) {
+  const storageKey = "nankai-safety-demo-incidents";
+  try {
+    const existing = JSON.parse(localStorage.getItem(storageKey) || "[]");
+    existing.unshift(record);
+    localStorage.setItem(storageKey, JSON.stringify(existing.slice(0, 20)));
+  } catch (error) {
+    console.warn("Unable to save demo incident", error);
+  }
+}
+
+if (criticalAlarmButton) criticalAlarmButton.addEventListener("click", () => {
+  const incidentId = createIncidentId("SOS");
+  saveDemoIncident({ id: incidentId, severity: "critical", status: "pending-supplement", createdAt: new Date().toISOString() });
+  criticalAlarmButton.disabled = true;
+  criticalAlarmButton.innerHTML = "<span aria-hidden=\"true\">✓</span>报警记录已生成";
+  document.querySelector("#criticalRecordText").textContent = `联调记录 ${incidentId} 已登记，请在确保安全的前提下补充信息。正式触达渠道接入前请同步电话联系保卫处。`;
+  supplementPanel.hidden = false;
+  supplementPanel.scrollIntoView({ behavior: "smooth", block: "center" });
+  showToast("特别紧急报警记录已生成，请继续补充现场信息");
+});
+
+if (supplementForm) supplementForm.addEventListener("submit", (event) => {
+  event.preventDefault();
+  saveDemoIncident({
+    id: createIncidentId("SUP"),
+    severity: "critical-supplement",
+    type: document.querySelector("#criticalType").value,
+    description: document.querySelector("#criticalDescription").value.trim(),
+    createdAt: new Date().toISOString(),
+  });
+  showToast("补充信息已保存");
+  supplementForm.querySelector("button").textContent = "已保存";
+});
+
 if (callButton) callButton.addEventListener("click", () => {
   const phoneNumber = "022-123456";
   if (isMobileDevice()) {
@@ -736,7 +911,7 @@ if (nextQuestion) nextQuestion.addEventListener("click", () => {
   renderQuiz();
 });
 
-if (quizQuestion && quizOptions) startQuizRound();
+if (quizQuestion && quizOptions) Promise.all([loadQuizQuestions(), loadActiveQuizTask()]).finally(() => startQuizRound());
 loadSafetyCaseScenarios().finally(initRoleSimulation);
 switchTab(getInitialTab(), false);
 

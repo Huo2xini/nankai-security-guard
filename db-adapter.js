@@ -125,6 +125,22 @@ function initMysqlSchema() {
       UNIQUE KEY unique_student_feishu_user_id (feishu_user_id),
       KEY idx_student_status (status)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS student_profiles (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      name VARCHAR(100) NOT NULL,
+      gender VARCHAR(16) NOT NULL DEFAULT '',
+      student_number VARCHAR(64) NOT NULL DEFAULT '',
+      grade VARCHAR(16) NOT NULL DEFAULT '',
+      feishu_user_id VARCHAR(128) NOT NULL,
+      study_stage VARCHAR(32) NOT NULL DEFAULT '',
+      status VARCHAR(32) NOT NULL DEFAULT 'active',
+      last_login_at DATETIME NULL,
+      created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      UNIQUE KEY unique_profile_feishu_user_id (feishu_user_id),
+      KEY idx_profile_stage_grade (study_stage, grade),
+      KEY idx_profile_student_number (student_number)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     CREATE TABLE IF NOT EXISTS learning_records (
       id INT AUTO_INCREMENT PRIMARY KEY,
       student_feishu_user_id VARCHAR(128) NOT NULL,
@@ -137,6 +153,71 @@ function initMysqlSchema() {
       UNIQUE KEY unique_student_case_role (student_feishu_user_id, case_id, role),
       KEY idx_case_id (case_id),
       KEY idx_completed_at (completed_at)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS quiz_questions (
+      id VARCHAR(64) PRIMARY KEY,
+      category VARCHAR(64) NOT NULL,
+      scene VARCHAR(128) NOT NULL,
+      difficulty VARCHAR(32) NOT NULL,
+      source_type VARCHAR(255) NOT NULL,
+      question_text TEXT NOT NULL,
+      options_json LONGTEXT NOT NULL,
+      answer_index TINYINT NOT NULL,
+      explanation TEXT NOT NULL,
+      review_status VARCHAR(32) NOT NULL DEFAULT 'approved',
+      updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+      KEY idx_quiz_category (category),
+      KEY idx_quiz_status (review_status)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS quiz_bank_versions (
+      id VARCHAR(64) PRIMARY KEY,
+      uploaded_by_id VARCHAR(128) NOT NULL,
+      uploaded_by_name VARCHAR(100) NOT NULL,
+      original_file_name VARCHAR(255) NOT NULL,
+      stored_file_name VARCHAR(255) NOT NULL,
+      question_count INT NOT NULL,
+      created_at DATETIME NOT NULL,
+      KEY idx_quiz_version_created (created_at)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS safety_education_tasks (
+      id VARCHAR(64) PRIMARY KEY,
+      title VARCHAR(255) NOT NULL,
+      target_scope VARCHAR(255) NOT NULL,
+      expected_count INT NOT NULL DEFAULT 0,
+      categories_json LONGTEXT NOT NULL,
+      question_count INT NOT NULL DEFAULT 10,
+      pass_score INT NOT NULL DEFAULT 80,
+      starts_at DATETIME NULL,
+      ends_at DATETIME NULL,
+      status VARCHAR(32) NOT NULL DEFAULT 'active',
+      created_by VARCHAR(128) NOT NULL,
+      created_at DATETIME NOT NULL,
+      updated_at DATETIME NOT NULL,
+      KEY idx_task_status (status, starts_at, ends_at)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS quiz_attempts (
+      id VARCHAR(64) PRIMARY KEY,
+      task_id VARCHAR(64) NULL,
+      student_feishu_user_id VARCHAR(128) NOT NULL,
+      student_name VARCHAR(100) NOT NULL,
+      score INT NOT NULL,
+      total_questions INT NOT NULL,
+      correct_count INT NOT NULL,
+      completed_at DATETIME NOT NULL,
+      KEY idx_attempt_task_student (task_id, student_feishu_user_id),
+      KEY idx_attempt_completed (completed_at)
+    ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+    CREATE TABLE IF NOT EXISTS quiz_attempt_answers (
+      id INT AUTO_INCREMENT PRIMARY KEY,
+      attempt_id VARCHAR(64) NOT NULL,
+      question_id VARCHAR(64) NOT NULL,
+      category VARCHAR(64) NOT NULL,
+      selected_answer TINYINT NOT NULL,
+      correct_answer TINYINT NOT NULL,
+      is_correct TINYINT(1) NOT NULL,
+      KEY idx_answer_attempt (attempt_id),
+      KEY idx_answer_question (question_id),
+      KEY idx_answer_category (category)
     ) CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
     CREATE TABLE IF NOT EXISTS notification_logs (
       id INT AUTO_INCREMENT PRIMARY KEY,
@@ -161,8 +242,10 @@ function ensureMysqlSeed(seedDatabase) {
   initMysqlSchema();
   const count = Number((mysqlExec("SELECT COUNT(*) FROM safety_cases;") || "0").trim() || "0");
   const sourceCount = Number((mysqlExec("SELECT COUNT(*) FROM source_pool;") || "0").trim() || "0");
+  const isFreshDatabase = count === 0 && sourceCount === 0;
   if (sourceCount === 0 && Array.isArray(seedDatabase.sourcePool)) writeMysqlSources(seedDatabase.sourcePool);
-  if (count === 0 && Array.isArray(seedDatabase.cases)) writeMysqlCases(seedDatabase.cases);
+  // Seed sample cases only for a brand-new database, never after an intentional cleanup.
+  if (isFreshDatabase && Array.isArray(seedDatabase.cases)) writeMysqlCases(seedDatabase.cases);
   const stateCount = Number((mysqlExec("SELECT COUNT(*) FROM app_state WHERE state_key = 'collection';") || "0").trim() || "0");
   if (stateCount === 0 && seedDatabase.collection) writeMysqlCollection(seedDatabase.collection);
   ensureDefaultAdminUsers();
@@ -197,9 +280,34 @@ function markMysqlUserLogin(feishuUserId, name) {
   return findMysqlUserByFeishuId(feishuUserId);
 }
 
+function updateMysqlUserRole(feishuUserId, role) {
+  mysqlExec("UPDATE admin_users SET role = " + sqlString(role) + ", updated_at = NOW() WHERE feishu_user_id = " + sqlString(feishuUserId) + ";");
+  return findMysqlUserByFeishuId(feishuUserId);
+}
+
 function upsertMysqlStudent(feishuUserId, name) {
   mysqlExec("INSERT INTO students (feishu_user_id, name, status, last_login_at) VALUES (" + sqlString(feishuUserId) + ", " + sqlString(name) + ", 'active', NOW()) ON DUPLICATE KEY UPDATE name = VALUES(name), status = 'active', last_login_at = NOW();");
   return findMysqlStudentByFeishuId(feishuUserId);
+}
+
+function upsertMysqlStudentProfile(profile) {
+  initMysqlSchema();
+  const name = String(profile.name || "").trim() || "飞书用户";
+  const gender = String(profile.gender || "").trim();
+  const studentNumber = String(profile.studentNumber || "").trim();
+  const grade = String(profile.grade || "").trim();
+  const studyStage = String(profile.studyStage || "").trim();
+  mysqlExec("INSERT INTO student_profiles (name, gender, student_number, grade, feishu_user_id, study_stage, status, last_login_at) VALUES (" +
+    sqlString(name) + ", " + sqlString(gender) + ", " + sqlString(studentNumber) + ", " + sqlString(grade) + ", " + sqlString(profile.feishuUserId) + ", " + sqlString(studyStage) + ", 'active', NOW()) ON DUPLICATE KEY UPDATE name = VALUES(name), gender = IF(VALUES(gender) = '', gender, VALUES(gender)), student_number = IF(VALUES(student_number) = '', student_number, VALUES(student_number)), grade = IF(VALUES(grade) = '', grade, VALUES(grade)), study_stage = IF(VALUES(study_stage) = '', study_stage, VALUES(study_stage)), status = 'active', last_login_at = NOW();");
+  return findMysqlStudentProfileByFeishuId(profile.feishuUserId);
+}
+
+function findMysqlStudentProfileByFeishuId(feishuUserId) {
+  initMysqlSchema();
+  const output = mysqlExec("SELECT id, name, gender, student_number, grade, feishu_user_id, study_stage, status, COALESCE(DATE_FORMAT(last_login_at, '%Y-%m-%d %H:%i:%s'), ''), COALESCE(DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s'), ''), COALESCE(DATE_FORMAT(updated_at, '%Y-%m-%d %H:%i:%s'), '') FROM student_profiles WHERE feishu_user_id = " + sqlString(feishuUserId) + " LIMIT 1;").trim();
+  if (!output) return null;
+  const [id, name, gender, studentNumber, grade, userId, studyStage, status, lastLoginAt, createdAt, updatedAt] = output.split("\t");
+  return { id: Number(id), name, gender, studentNumber, grade, feishuUserId: userId, studyStage, status, lastLoginAt, createdAt, updatedAt };
 }
 
 function findMysqlStudentByFeishuId(feishuUserId) {
@@ -219,6 +327,121 @@ function readMysqlLearningRecords() {
   return output.split(/\r?\n/).filter(Boolean).map((line) => {
     const [studentFeishuUserId, caseId, scenarioTitle, role, endingKey, completedAt] = line.split("\t");
     return { studentFeishuUserId, caseId, scenarioTitle, role, endingKey, completedAt };
+  });
+}
+
+function readMysqlQuizQuestions() {
+  initMysqlSchema();
+  const output = mysqlExec("SELECT id, category, scene, difficulty, source_type, question_text, options_json, answer_index, explanation, review_status FROM quiz_questions WHERE review_status = 'approved' ORDER BY id;").trim();
+  if (!output) return [];
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [id, category, scene, difficulty, sourceType, question, optionsJson, answer, explain, reviewStatus] = line.split("\t");
+    return { id, category, scene, difficulty, sourceType, question, options: JSON.parse(optionsJson || "[]"), answer: Number(answer), explain, reviewStatus };
+  });
+}
+
+function replaceMysqlQuizQuestions(questions = []) {
+  initMysqlSchema();
+  const inserts = questions.map((item) =>
+    "INSERT INTO quiz_questions (id, category, scene, difficulty, source_type, question_text, options_json, answer_index, explanation, review_status) VALUES (" +
+      sqlString(item.id) + ", " + sqlString(item.category) + ", " + sqlString(item.scene) + ", " + sqlString(item.difficulty) + ", " +
+      sqlString(item.sourceType) + ", " + sqlString(item.question) + ", " + sqlString(JSON.stringify(item.options || [])) + ", " +
+      Number(item.answer) + ", " + sqlString(item.explain) + ", " + sqlString(item.reviewStatus || "approved") + ");"
+  ).join("\n");
+  mysqlExec("START TRANSACTION;\nDELETE FROM quiz_questions;\n" + inserts + "\nCOMMIT;");
+}
+
+function ensureMysqlQuizQuestions(questions = []) {
+  if (!Array.isArray(questions) || !questions.length) return;
+  initMysqlSchema();
+  const count = Number((mysqlExec("SELECT COUNT(*) FROM quiz_questions;") || "0").trim() || "0");
+  const ids = questions.map((item) => sqlString(item.id)).join(", ");
+  const matched = Number((mysqlExec("SELECT COUNT(*) FROM quiz_questions WHERE id IN (" + ids + ");") || "0").trim() || "0");
+  if (count !== questions.length || matched !== questions.length) replaceMysqlQuizQuestions(questions);
+}
+
+function insertMysqlQuizBankVersion(version) {
+  initMysqlSchema();
+  mysqlExec("INSERT INTO quiz_bank_versions (id, uploaded_by_id, uploaded_by_name, original_file_name, stored_file_name, question_count, created_at) VALUES (" +
+    sqlString(version.id) + ", " + sqlString(version.uploadedById) + ", " + sqlString(version.uploadedByName) + ", " +
+    sqlString(version.originalFileName) + ", " + sqlString(version.storedFileName) + ", " + Number(version.questionCount) + ", NOW());");
+}
+
+function readMysqlQuizBankVersions() {
+  initMysqlSchema();
+  const output = mysqlExec("SELECT id, uploaded_by_id, uploaded_by_name, original_file_name, stored_file_name, question_count, COALESCE(DATE_FORMAT(created_at, '%Y-%m-%d %H:%i:%s'), '') FROM quiz_bank_versions ORDER BY created_at DESC;").trim();
+  if (!output) return [];
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [id, uploadedById, uploadedByName, originalFileName, storedFileName, questionCount, createdAt] = line.split("\t");
+    return { id, uploadedById, uploadedByName, originalFileName, storedFileName, questionCount: Number(questionCount), createdAt };
+  });
+}
+
+function findMysqlQuizBankVersion(id) {
+  return readMysqlQuizBankVersions().find((item) => item.id === id) || null;
+}
+
+function readMysqlQuizTasks() {
+  initMysqlSchema();
+  const output = mysqlExec("SELECT id, title, target_scope, expected_count, categories_json, question_count, pass_score, COALESCE(DATE_FORMAT(starts_at, '%Y-%m-%d %H:%i'), ''), COALESCE(DATE_FORMAT(ends_at, '%Y-%m-%d %H:%i'), ''), status, created_by, COALESCE(DATE_FORMAT(created_at, '%Y-%m-%d %H:%i'), ''), COALESCE(DATE_FORMAT(updated_at, '%Y-%m-%d %H:%i'), '') FROM safety_education_tasks ORDER BY created_at DESC;").trim();
+  if (!output) return [];
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [id, title, targetScope, expectedCount, categoriesJson, questionCount, passScore, startsAt, endsAt, status, createdBy, createdAt, updatedAt] = line.split("\t");
+    return { id, title, targetScope, expectedCount: Number(expectedCount), categories: JSON.parse(categoriesJson || "[]"), questionCount: Number(questionCount), passScore: Number(passScore), startsAt, endsAt, status, createdBy, createdAt, updatedAt };
+  });
+}
+
+function createMysqlQuizTask(task) {
+  initMysqlSchema();
+  if (task.status === "active") mysqlExec("UPDATE safety_education_tasks SET status = 'paused', updated_at = NOW() WHERE status = 'active';");
+  mysqlExec("INSERT INTO safety_education_tasks (id, title, target_scope, expected_count, categories_json, question_count, pass_score, starts_at, ends_at, status, created_by, created_at, updated_at) VALUES (" +
+    sqlString(task.id) + ", " + sqlString(task.title) + ", " + sqlString(task.targetScope) + ", " + Number(task.expectedCount || 0) + ", " +
+    sqlString(JSON.stringify(task.categories || [])) + ", " + Number(task.questionCount || 10) + ", " + Number(task.passScore || 80) + ", " +
+    (task.startsAt ? sqlString(task.startsAt) : "NULL") + ", " + (task.endsAt ? sqlString(task.endsAt) : "NULL") + ", " +
+    sqlString(task.status || "active") + ", " + sqlString(task.createdBy) + ", NOW(), NOW());");
+  return readMysqlQuizTasks().find((item) => item.id === task.id);
+}
+
+function updateMysqlQuizTaskStatus(id, status) {
+  initMysqlSchema();
+  if (status === "active") mysqlExec("UPDATE safety_education_tasks SET status = 'paused', updated_at = NOW() WHERE status = 'active' AND id <> " + sqlString(id) + ";");
+  mysqlExec("UPDATE safety_education_tasks SET status = " + sqlString(status) + ", updated_at = NOW() WHERE id = " + sqlString(id) + ";");
+  return readMysqlQuizTasks().find((item) => item.id === id) || null;
+}
+
+function readMysqlActiveQuizTask() {
+  const now = new Date().toISOString().slice(0, 19).replace("T", " ");
+  return readMysqlQuizTasks().find((item) => item.status === "active" && (!item.startsAt || item.startsAt <= now.slice(0, 16)) && (!item.endsAt || item.endsAt >= now.slice(0, 16))) || null;
+}
+
+function insertMysqlQuizAttempt(attempt, answers = []) {
+  initMysqlSchema();
+  mysqlExec("INSERT INTO quiz_attempts (id, task_id, student_feishu_user_id, student_name, score, total_questions, correct_count, completed_at) VALUES (" +
+    sqlString(attempt.id) + ", " + (attempt.taskId ? sqlString(attempt.taskId) : "NULL") + ", " + sqlString(attempt.studentFeishuUserId) + ", " +
+    sqlString(attempt.studentName) + ", " + Number(attempt.score) + ", " + Number(attempt.totalQuestions) + ", " + Number(attempt.correctCount) + ", NOW());");
+  for (const answer of answers) mysqlExec("INSERT INTO quiz_attempt_answers (attempt_id, question_id, category, selected_answer, correct_answer, is_correct) VALUES (" +
+    sqlString(attempt.id) + ", " + sqlString(answer.questionId) + ", " + sqlString(answer.category) + ", " + Number(answer.selectedAnswer) + ", " + Number(answer.correctAnswer) + ", " + (answer.isCorrect ? 1 : 0) + ");");
+}
+
+function readMysqlQuizAttempts(taskId = "") {
+  initMysqlSchema();
+  const where = taskId ? " WHERE task_id = " + sqlString(taskId) : "";
+  const output = mysqlExec("SELECT id, COALESCE(task_id, ''), student_feishu_user_id, student_name, score, total_questions, correct_count, COALESCE(DATE_FORMAT(completed_at, '%Y-%m-%d %H:%i:%s'), '') FROM quiz_attempts" + where + " ORDER BY completed_at DESC;").trim();
+  if (!output) return [];
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [id, taskIdValue, studentFeishuUserId, studentName, score, totalQuestions, correctCount, completedAt] = line.split("\t");
+    return { id, taskId: taskIdValue, studentFeishuUserId, studentName, score: Number(score), totalQuestions: Number(totalQuestions), correctCount: Number(correctCount), completedAt };
+  });
+}
+
+function readMysqlQuizAttemptAnswers(taskId = "") {
+  initMysqlSchema();
+  const join = taskId ? " INNER JOIN quiz_attempts qa ON qa.id = qaa.attempt_id WHERE qa.task_id = " + sqlString(taskId) : "";
+  const output = mysqlExec("SELECT qaa.attempt_id, qaa.question_id, qaa.category, qaa.selected_answer, qaa.correct_answer, qaa.is_correct FROM quiz_attempt_answers qaa" + join + ";").trim();
+  if (!output) return [];
+  return output.split(/\r?\n/).filter(Boolean).map((line) => {
+    const [attemptId, questionId, category, selectedAnswer, correctAnswer, isCorrect] = line.split("\t");
+    return { attemptId, questionId, category, selectedAnswer: Number(selectedAnswer), correctAnswer: Number(correctAnswer), isCorrect: Number(isCorrect) === 1 };
   });
 }
 function readMysqlSources() {
@@ -330,10 +553,26 @@ module.exports = {
   writeMysqlDatabase,
   findMysqlUserByFeishuId,
   markMysqlUserLogin,
+  updateMysqlUserRole,
   upsertMysqlStudent,
+  upsertMysqlStudentProfile,
+  findMysqlStudentProfileByFeishuId,
   findMysqlStudentByFeishuId,
   insertMysqlLearningRecord,
   readMysqlLearningRecords,
+  readMysqlQuizQuestions,
+  replaceMysqlQuizQuestions,
+  ensureMysqlQuizQuestions,
+  insertMysqlQuizBankVersion,
+  readMysqlQuizBankVersions,
+  findMysqlQuizBankVersion,
+  readMysqlQuizTasks,
+  createMysqlQuizTask,
+  updateMysqlQuizTaskStatus,
+  readMysqlActiveQuizTask,
+  insertMysqlQuizAttempt,
+  readMysqlQuizAttempts,
+  readMysqlQuizAttemptAnswers,
   insertMysqlNotificationLog,
   readMysqlNotificationLogs
 };

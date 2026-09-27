@@ -2,6 +2,7 @@ const http = require("http");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
+const zlib = require("zlib");
 
 function loadLocalEnv() {
   const envPath = path.join(__dirname, ".env");
@@ -27,8 +28,10 @@ const root = __dirname;
 const dataDir = path.join(root, "data");
 const seedPath = path.join(dataDir, "safety-cases.json");
 const dbPath = path.join(dataDir, "safety-case-db.json");
+const quizBankPath = path.join(dataDir, "quiz-questions.json");
+const quizUploadDir = path.join(dataDir, "quiz-uploads");
 
-const protectedPages = { "/editor.html": "editor", "/reviewer.html": "reviewer", "/knowledge.html": "student" };
+const protectedPages = { "/editor.html": "editor", "/reviewer.html": "reviewer", "/admin.html": "admin", "/knowledge.html": "student" };
 const oauthStates = new Map();
 const notificationDedupes = new Map();
 
@@ -156,7 +159,11 @@ async function feishuUserToLocalUser(feishuUser, requestedRole = "reviewer") {
   const feishuUserId = feishuUser.open_id || feishuUser.union_id || feishuUser.user_id;
   const name = feishuUser.name || feishuUser.en_name || "Feishu user";
   if (!feishuUserId) return null;
-  if (requestedRole === "student") return dbAdapter.upsertMysqlStudent(feishuUserId, name);
+  if (requestedRole === "student") {
+    const student = dbAdapter.upsertMysqlStudent(feishuUserId, name);
+    dbAdapter.upsertMysqlStudentProfile({ feishuUserId, name });
+    return student;
+  }
   const matched = dbAdapter.findMysqlUserByFeishuId(feishuUserId);
   if (!matched || matched.status !== "active") return null;
   return dbAdapter.markMysqlUserLogin(feishuUserId, name);
@@ -361,6 +368,47 @@ function stripTags(value) {
   return String(value || "").replace(/<script[\s\S]*?<\/script>/gi, "").replace(/<style[\s\S]*?<\/style>/gi, "").replace(/<[^>]+>/g, " ").replace(/\s+/g, " ").trim();
 }
 
+function decodeHtmlEntities(value) {
+  return String(value || "")
+    .replace(/&nbsp;/gi, " ")
+    .replace(/&amp;/gi, "&")
+    .replace(/&lt;/gi, "<")
+    .replace(/&gt;/gi, ">")
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/&#(\d+);/g, (_, code) => String.fromCharCode(Number(code)))
+    .replace(/&#x([\da-f]+);/gi, (_, code) => String.fromCharCode(parseInt(code, 16)));
+}
+
+function articleTextFromHtml(html) {
+  const blocks = [
+    /<article\b[^>]*>([\s\S]*?)<\/article>/i,
+    /<div\b[^>]*(?:id|class)=["'][^"']*(?:content|article|detail|news)[^"']*["'][^>]*>([\s\S]*?)<\/div>/i,
+    /<main\b[^>]*>([\s\S]*?)<\/main>/i
+  ];
+  for (const pattern of blocks) {
+    const match = String(html || "").match(pattern);
+    const text = decodeHtmlEntities(stripTags(match?.[1] || ""));
+    if (text.length >= 40) return text;
+  }
+  return decodeHtmlEntities(stripTags(html));
+}
+
+function articleTitleFromHtml(html, fallback = "") {
+  const ogMatch = String(html || "").match(/<meta\b[^>]*(?:property|name)=["'](?:og:title|title)["'][^>]*content=["']([^"']+)["'][^>]*>/i);
+  const titleMatch = String(html || "").match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+  const title = decodeHtmlEntities(stripTags(ogMatch?.[1] || titleMatch?.[1] || fallback));
+  return title.replace(/[_\-|｜]\s*(?:南开大学|南开大学党委网信办|首页).*$/i, "").trim() || fallback;
+}
+
+function articleDateFromText(text, fallback) {
+  const match = String(text || "").match(/20\d{2}[年\/-]\d{1,2}[月\/-]\d{1,2}日?/);
+  if (!match) return fallback;
+  const values = match[0].match(/\d+/g);
+  if (!values || values.length < 3) return fallback;
+  return `${values[0]}-${String(values[1]).padStart(2, "0")}-${String(values[2]).padStart(2, "0")}`;
+}
+
 function absoluteUrl(href, baseUrl) {
   try {
     return new URL(href, baseUrl).href;
@@ -369,8 +417,24 @@ function absoluteUrl(href, baseUrl) {
   }
 }
 
+function isArticleDetailUrl(value, sourceUrl = "") {
+  try {
+    const url = new URL(value);
+    const source = sourceUrl ? new URL(sourceUrl) : null;
+    const pathName = decodeURIComponent(url.pathname || "/").replace(/\/+$/, "") || "/";
+    if (source && url.hostname !== source.hostname) return false;
+    if (!pathName || pathName === "/") return false;
+    if (/\/(?:list|listm|index|default|more)(?:\.[a-z0-9]+)?$/i.test(pathName)) return false;
+    if (/(?:^|\/)(?:list|index|channel|category)(?:\/|$)/i.test(pathName)) return false;
+    return /(?:info|content|article|detail|show|news|page|xxgk|c\d+a\d+|\/20\d{2}\/\d{2,}|\.s?html?$)/i.test(pathName);
+  } catch (error) {
+    return false;
+  }
+}
+
 function extractCandidateLinks(html, source) {
   const candidates = [];
+  const seenUrls = new Set();
   const linkPattern = /<a\b[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
   let match;
   while ((match = linkPattern.exec(html))) {
@@ -378,10 +442,12 @@ function extractCandidateLinks(html, source) {
     const title = stripTags(match[2]);
     const combined = `${title} ${url}`;
     const safetyType = inferSafetyType(combined);
-    if (!url || !title || !safetyType) continue;
+    if (!url || !title || !safetyType || !isArticleDetailUrl(url, source.url) || seenUrls.has(url)) continue;
+    seenUrls.add(url);
     candidates.push({
       sourceName: source.name,
       sourceUrl: url,
+      sourceIndexUrl: source.url,
       sourceDate: new Date().toISOString().slice(0, 10),
       safetyType,
       campusScene: inferCampusScene(combined),
@@ -396,6 +462,30 @@ function extractCandidateLinks(html, source) {
   return candidates.slice(0, 12);
 }
 
+async function enrichCandidateFromArticle(candidate) {
+  try {
+    const response = await fetchWithTimeout(candidate.sourceUrl, 8000);
+    if (!response.ok) throw new Error(`详情页返回 ${response.status}`);
+    const html = await response.text();
+    const articleText = articleTextFromHtml(html);
+    const originalTitle = articleTitleFromHtml(html, candidate.title);
+    return {
+      ...candidate,
+      title: originalTitle,
+      sourceOriginalTitle: originalTitle,
+      sourceExcerpt: articleText,
+      sourceDate: articleDateFromText(articleText, candidate.sourceDate)
+    };
+  } catch (error) {
+    return {
+      ...candidate,
+      sourceOriginalTitle: candidate.title,
+      sourceExcerpt: "详情页正文暂未获取，请通过原文核验链接打开对应页面核对。",
+      sourceFetchError: error.message
+    };
+  }
+}
+
 async function intakeCandidate(database, candidate) {
   const today = new Date().toISOString().slice(0, 10);
   const item = {
@@ -405,6 +495,10 @@ async function intakeCandidate(database, candidate) {
     sourceAuthority: candidate.sourceAuthority || (/nankai\.edu\.cn/.test(candidate.sourceUrl || "") ? "nankai" : "public-authority"),
     sourceName: candidate.sourceName || "",
     sourceUrl: candidate.sourceUrl || "",
+    sourceIndexUrl: candidate.sourceIndexUrl || "",
+    sourceOriginalTitle: candidate.sourceOriginalTitle || candidate.title || "",
+    sourceExcerpt: candidate.sourceExcerpt || "",
+    sourceFetchError: candidate.sourceFetchError || "",
     sourceDate: candidate.sourceDate || today,
     collectedAt: today,
     safetyType: candidate.safetyType || "",
@@ -413,6 +507,7 @@ async function intakeCandidate(database, candidate) {
     subtitle: candidate.subtitle || "",
     sceneClass: candidate.sceneClass || "scene-task",
     desensitization: candidate.desensitization || "待完善：需由编辑员完成信息脱敏说明。",
+    sanitizedSourceText: candidate.sanitizedSourceText || "",
     actor: candidate.actor || "同学",
     peer: candidate.peer || "同学",
     authority: candidate.authority || "学校相关部门",
@@ -436,7 +531,19 @@ async function intakeCandidate(database, candidate) {
     checkedAt: today
   };
   const requiredReady = Boolean(item.sourceName && item.sourceUrl && item.title && item.hook && item.safetyType && item.campusScene);
-  if (item.duplicateCheck.status === "duplicate") return { status: "duplicate", case: item };
+  if (item.duplicateCheck.status === "duplicate") {
+    if (duplicate.reason === "same-source-url" && duplicate.case) {
+      const existing = duplicate.case;
+      // Refresh traceability metadata without overwriting an editor's case narrative.
+      existing.sourceIndexUrl = item.sourceIndexUrl || existing.sourceIndexUrl || "";
+      existing.sourceOriginalTitle = item.sourceOriginalTitle || existing.sourceOriginalTitle || "";
+      existing.sourceExcerpt = item.sourceExcerpt || existing.sourceExcerpt || "";
+      existing.sourceFetchError = item.sourceFetchError || "";
+      existing.sourceDate = item.sourceDate || existing.sourceDate;
+      existing.updatedAt = new Date().toISOString();
+    }
+    return { status: "duplicate", case: item };
+  }
   if (!requiredReady) return { status: "invalid", case: item };
   database.cases.push(item);
   return { status: "created", case: item };
@@ -618,7 +725,8 @@ async function runAutoCollection(trigger = "manual") {
       const candidates = extractCandidateLinks(html, source);
       sourceRun.scanned = candidates.length;
       run.scanned += candidates.length;
-      for (const candidate of candidates) {
+      for (const rawCandidate of candidates) {
+        const candidate = await enrichCandidateFromArticle(rawCandidate);
         const result = await intakeCandidate(database, candidate);
         if (result.status === "created") { run.created += 1; sourceRun.created += 1; }
         if (result.status === "duplicate") { run.duplicate += 1; sourceRun.duplicate += 1; }
@@ -688,10 +796,21 @@ function normalizeStatus(status) {
 function caseSubmissionFailures(item) {
   const isCleanDesensitization = Boolean(item.desensitization && !/(待审核|待完善|需由编辑员|真实姓名|手机号|身份证|银行卡号|学号\d+)/.test(item.desensitization));
   const isUsefulList = (items) => Array.isArray(items) && items.length >= 3 && !items.some((value) => /需进一步|需完成|补充|待完善/.test(String(value || "")));
+  const isSubstantiveNarrative = (value) => {
+    const text = String(value || "").trim();
+    return Boolean(text) && !/(待补充|待完善|官方来源提到|需由编辑员|暂无)/.test(text);
+  };
+  const sanitizedText = String(item.sanitizedSourceText || "").trim();
+  const containsObviousSensitiveData = /(?:1[3-9]\d{9}|\b\d{17}[\dXx]\b|[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,})/i.test(sanitizedText);
   const failures = [];
-  if (!/^https:\/\//.test(item.sourceUrl || "")) failures.push("来源链接需要使用 https 官网或权威来源");
+  if (!/^https:\/\//.test(item.sourceUrl || "")) failures.push("需要填写原文详情页的 https 来源链接");
+  else if (!isArticleDetailUrl(item.sourceUrl)) failures.push("来源链接不能是官网首页或栏目页，请补充对应原文详情页");
   if (!isCleanDesensitization) failures.push("需要填写明确的脱敏说明");
+  if (!sanitizedText) failures.push("请填写脱敏后案例材料，作为情景改写依据");
+  if (containsObviousSensitiveData) failures.push("脱敏后案例材料仍含手机号、身份证号或邮箱，请删除或泛化处理");
   if (!item.safetyType || !item.campusScene || item.campusScene === "待分类情景") failures.push("需要选择安全类型和具体校园情景");
+  if (!isSubstantiveNarrative(item.hook)) failures.push("情景开端需写清人物、校园场景和首个风险信号");
+  if (!isSubstantiveNarrative(item.escalation)) failures.push("风险升级需写清继续操作后的具体后果");
   if (!isUsefulList(item.warningSigns)) failures.push("风险信号至少 3 条，且不能是模板句");
   if (!isUsefulList(item.safeActions)) failures.push("安全动作至少 3 条，且需要可执行");
   return failures;
@@ -703,6 +822,229 @@ function readJson(filePath, fallback) {
   } catch (error) {
     return fallback;
   }
+}
+
+function readQuizBank() {
+  const quizBank = readJson(quizBankPath, { questions: [] });
+  return Array.isArray(quizBank.questions) ? quizBank.questions.filter((item) =>
+    item && item.id && item.category && item.question && Array.isArray(item.options) && item.options.length === 4 &&
+    Number.isInteger(item.answer) && item.answer >= 0 && item.answer < 4 && item.explain
+  ) : [];
+}
+
+function readQuizBankDocument() {
+  const quizBank = readJson(quizBankPath, { version: "", questions: [] });
+  return {
+    version: String(quizBank.version || "").trim() || new Date().toISOString().slice(0, 10),
+    questions: readQuizBank()
+  };
+}
+
+function normalizeUploadedQuizBank(payload) {
+  if (!payload || typeof payload !== "object" || Array.isArray(payload) || !Array.isArray(payload.questions)) {
+    throw new Error("题库文件必须是包含 questions 数组的 JSON 对象");
+  }
+  if (!payload.questions.length) throw new Error("题库至少需要包含 1 道题");
+  if (payload.questions.length > 5000) throw new Error("单次上传最多支持 5000 道题");
+  const ids = new Set();
+  const questions = payload.questions.map((raw, index) => {
+    const number = index + 1;
+    const item = raw && typeof raw === "object" ? raw : {};
+    const id = String(item.id || "").trim();
+    const category = String(item.category || "").trim();
+    const question = String(item.question || "").trim();
+    const explain = String(item.explain || "").trim();
+    const options = Array.isArray(item.options) ? item.options.map((value) => String(value || "").trim()) : [];
+    const answer = Number(item.answer);
+    if (!id) throw new Error(`第 ${number} 题缺少 id`);
+    if (ids.has(id)) throw new Error(`题目 id 重复：${id}`);
+    if (!category) throw new Error(`第 ${number} 题缺少 category`);
+    if (!question) throw new Error(`第 ${number} 题缺少 question`);
+    if (options.length !== 4 || options.some((value) => !value)) throw new Error(`第 ${number} 题的 options 必须包含 4 个非空选项`);
+    if (!Number.isInteger(answer) || answer < 0 || answer > 3) throw new Error(`第 ${number} 题的 answer 必须是 0 至 3 的整数`);
+    if (!explain) throw new Error(`第 ${number} 题缺少 explain`);
+    ids.add(id);
+    return {
+      id,
+      category,
+      scene: String(item.scene || "未分类场景").trim(),
+      difficulty: String(item.difficulty || "基础").trim(),
+      sourceType: String(item.sourceType || "管理员上传").trim(),
+      question,
+      options,
+      answer,
+      explain,
+      reviewStatus: "approved"
+    };
+  });
+  return {
+    version: String(payload.version || "").trim() || new Date().toISOString().slice(0, 10),
+    questions
+  };
+}
+
+function decodeXmlText(value) {
+  return String(value || "").replace(/&amp;/g, "&").replace(/&lt;/g, "<").replace(/&gt;/g, ">").replace(/&quot;/g, "\"").replace(/&#39;/g, "'");
+}
+
+function extractDocxText(buffer) {
+  let end = -1;
+  for (let index = buffer.length - 22; index >= Math.max(0, buffer.length - 65557); index -= 1) {
+    if (buffer.readUInt32LE(index) === 0x06054b50) { end = index; break; }
+  }
+  if (end < 0) throw new Error("无法识别 Word 文档格式，请上传 .docx 文件");
+  const directoryOffset = buffer.readUInt32LE(end + 16);
+  const entries = buffer.readUInt16LE(end + 10);
+  let cursor = directoryOffset;
+  for (let index = 0; index < entries; index += 1) {
+    if (buffer.readUInt32LE(cursor) !== 0x02014b50) throw new Error("Word 文档目录损坏");
+    const compression = buffer.readUInt16LE(cursor + 10);
+    const compressedSize = buffer.readUInt32LE(cursor + 20);
+    const nameLength = buffer.readUInt16LE(cursor + 28);
+    const extraLength = buffer.readUInt16LE(cursor + 30);
+    const commentLength = buffer.readUInt16LE(cursor + 32);
+    const localOffset = buffer.readUInt32LE(cursor + 42);
+    const name = buffer.slice(cursor + 46, cursor + 46 + nameLength).toString("utf8");
+    if (name === "word/document.xml") {
+      if (buffer.readUInt32LE(localOffset) !== 0x04034b50) throw new Error("Word 文档内容损坏");
+      const localNameLength = buffer.readUInt16LE(localOffset + 26);
+      const localExtraLength = buffer.readUInt16LE(localOffset + 28);
+      const start = localOffset + 30 + localNameLength + localExtraLength;
+      const source = buffer.slice(start, start + compressedSize);
+      const xml = compression === 0 ? source.toString("utf8") : compression === 8 ? zlib.inflateRawSync(source).toString("utf8") : "";
+      if (!xml) throw new Error("该 Word 文档使用了不支持的压缩方式");
+      return decodeXmlText(xml.replace(/<w:tab[^>]*\/>/g, "\t").replace(/<w:br[^>]*\/>/g, "\n").replace(/<w:p[^>]*>/g, "\n").replace(/<\/w:p>/g, "\n").replace(/<w:t[^>]*>([\s\S]*?)<\/w:t>/g, (_, text) => text).replace(/<[^>]+>/g, ""));
+    }
+    cursor += 46 + nameLength + extraLength + commentLength;
+  }
+  throw new Error("Word 文档中未找到正文内容");
+}
+
+function inferQuizCategory(text) {
+  const value = String(text || "");
+  if (/政治安全|国家安全|境外势力|保密/.test(value)) return "政治安全";
+  if (/诈骗|刷单|转账|验证码|冒充|退款|贷款/.test(value)) return "反诈骗";
+  if (/网络|密码|钓鱼|链接|账号|WiFi|数据泄露/.test(value)) return "网络安全";
+  if (/消防|火灾|灭火|疏散|充电|电器|燃气/.test(value)) return "消防安全";
+  if (/交通|电动车|骑行|车辆|斑马线/.test(value)) return "交通安全";
+  if (/实验室|化学品|试剂|仪器|废液/.test(value)) return "实验室安全";
+  if (/治安|夜间|尾随|财物|失物|陌生人/.test(value)) return "治安安全";
+  return "综合安全";
+}
+
+function parseQuizText(sourceText, fileName) {
+  const lines = String(sourceText || "").replace(/\r/g, "").split("\n").map((line) => line.replace(/[*`]/g, "").replace(/\s+/g, " ").trim()).filter(Boolean);
+  const blocks = [];
+  let currentCategory = "综合安全";
+  let current = null;
+  const finish = () => { if (current) blocks.push(current); current = null; };
+  for (const line of lines) {
+    const heading = line.replace(/^#{1,6}\s*/, "").replace(/^[一二三四五六七八九十]+[、.．]\s*/, "");
+    if (/^(政治安全|反诈骗|网络安全|消防安全|交通安全|治安安全|实验室安全|综合安全)(?:题库|知识|部分|模块)?$/.test(heading)) { currentCategory = heading.replace(/(?:题库|知识|部分|模块)$/, ""); continue; }
+    const start = line.match(/^(?:#{1,6}\s*)?(?:第?\s*\d+\s*[、.．]|Q(?:uestion)?\s*\d*\s*[:：]|问题\s*[:：])\s*(.+)$/i);
+    if (start) { finish(); current = { category: currentCategory, question: start[1], lines: [] }; continue; }
+    if (!current && /[？?]$/.test(line)) { current = { category: currentCategory, question: line, lines: [] }; continue; }
+    if (current) current.lines.push(line);
+  }
+  finish();
+  if (!blocks.length) throw new Error("未识别到题目。每道题请以“1. 题干”或“问题：题干”开头");
+  const questions = blocks.map((block, index) => {
+    const options = ["", "", "", ""];
+    let answer = -1;
+    const explain = [];
+    let explanationMode = false;
+    for (const line of block.lines) {
+      const option = line.match(/^([A-D])[.、．:：]\s*(.+)$/i);
+      const answerMatch = line.match(/^(?:正确答案|答案)\s*[:：]\s*([A-D])\b/i);
+      const explainMatch = line.match(/^(?:解释|解析|答案解析|原因)\s*[:：]\s*(.*)$/i);
+      if (option && !explanationMode) { options[option[1].toUpperCase().charCodeAt(0) - 65] = option[2].trim(); continue; }
+      if (answerMatch) { answer = answerMatch[1].toUpperCase().charCodeAt(0) - 65; continue; }
+      if (explainMatch) { explanationMode = true; if (explainMatch[1]) explain.push(explainMatch[1]); continue; }
+      if (explanationMode) explain.push(line);
+    }
+    const number = index + 1;
+    if (!block.question || options.some((option) => !option) || answer < 0 || !explain.join(" ").trim()) {
+      throw new Error(`第 ${number} 题格式不完整：每题需要题干、A-D 四个选项、正确答案和解释`);
+    }
+    const category = block.category === "综合安全" ? inferQuizCategory(block.question + " " + explain.join(" ")) : block.category;
+    return { id: `UPLOAD-${Date.now()}-${String(number).padStart(4, "0")}`, category, scene: "综合知识", difficulty: "基础", sourceType: `管理员上传：${fileName}`, question: block.question, options, answer, explain: explain.join(" ").trim(), reviewStatus: "approved" };
+  });
+  return { version: new Date().toISOString().slice(0, 10), questions };
+}
+
+function quizDocumentFromUpload(fileName, mimeType, buffer) {
+  const extension = path.extname(fileName || "").toLowerCase();
+  if (extension === ".docx" || /wordprocessingml/.test(mimeType || "")) return parseQuizText(extractDocxText(buffer), fileName);
+  if (extension === ".md" || extension === ".markdown" || extension === ".txt" || /text\//.test(mimeType || "")) return parseQuizText(buffer.toString("utf8"), fileName);
+  throw new Error("仅支持 Word .docx 或 Markdown .md 文件");
+}
+
+function quizBankSummary(document) {
+  const categories = {};
+  for (const item of document.questions) categories[item.category] = (categories[item.category] || 0) + 1;
+  let updatedAt = "";
+  try { updatedAt = fs.statSync(quizBankPath).mtime.toISOString(); } catch (error) { /* file may not exist yet */ }
+  return { version: document.version, questionCount: document.questions.length, categories, updatedAt };
+}
+
+function archiveQuizBankUpload(upload, session, questionCount) {
+  if (!dbAdapter.mysqlEnabled()) return null;
+  const extension = path.extname(upload.fileName || "").toLowerCase();
+  const id = "quiz-version-" + crypto.randomBytes(10).toString("hex");
+  const storedFileName = id + extension;
+  fs.mkdirSync(quizUploadDir, { recursive: true });
+  fs.writeFileSync(path.join(quizUploadDir, storedFileName), upload.buffer);
+  dbAdapter.insertMysqlQuizBankVersion({
+    id,
+    uploadedById: session.feishuUserId,
+    uploadedByName: session.name || "管理员",
+    originalFileName: path.basename(upload.fileName || "题库文件"),
+    storedFileName,
+    questionCount
+  });
+  return id;
+}
+
+function persistQuizBank(document) {
+  const backupDir = path.join(path.dirname(quizBankPath), "quiz-backups");
+  if (fs.existsSync(quizBankPath)) {
+    fs.mkdirSync(backupDir, { recursive: true });
+    const stamp = new Date().toISOString().replace(/[:.]/g, "-");
+    fs.copyFileSync(quizBankPath, path.join(backupDir, `quiz-questions-${stamp}.json`));
+  }
+  if (dbAdapter.mysqlEnabled()) dbAdapter.replaceMysqlQuizQuestions(document.questions);
+  const tempPath = quizBankPath + ".uploading";
+  writeJson(tempPath, document);
+  fs.renameSync(tempPath, quizBankPath);
+}
+
+function buildQuizReport(taskId = "") {
+  const questions = dbAdapter.readMysqlQuizQuestions();
+  const questionById = new Map(questions.map((item) => [item.id, item]));
+  const attempts = dbAdapter.readMysqlQuizAttempts(taskId);
+  const answers = dbAdapter.readMysqlQuizAttemptAnswers(taskId);
+  const participants = new Set(attempts.map((item) => item.studentFeishuUserId));
+  const totalScore = attempts.reduce((sum, item) => sum + item.score, 0);
+  const categoryStats = {};
+  const wrongQuestions = {};
+  for (const answer of answers) {
+    const category = answer.category || "未分类";
+    if (!categoryStats[category]) categoryStats[category] = { category, total: 0, correct: 0 };
+    categoryStats[category].total += 1;
+    if (answer.isCorrect) categoryStats[category].correct += 1;
+    if (!answer.isCorrect) {
+      if (!wrongQuestions[answer.questionId]) wrongQuestions[answer.questionId] = { questionId: answer.questionId, question: questionById.get(answer.questionId)?.question || answer.questionId, category, wrongCount: 0 };
+      wrongQuestions[answer.questionId].wrongCount += 1;
+    }
+  }
+  return {
+    attempts: attempts.length,
+    participants: participants.size,
+    averageScore: attempts.length ? Math.round(totalScore / attempts.length) : 0,
+    categoryStats: Object.values(categoryStats).map((item) => ({ ...item, accuracy: item.total ? Math.round(item.correct * 100 / item.total) : 0 })).sort((a, b) => a.accuracy - b.accuracy),
+    wrongQuestions: Object.values(wrongQuestions).sort((a, b) => b.wrongCount - a.wrongCount).slice(0, 10),
+    recentAttempts: attempts.slice(0, 30)
+  };
 }
 
 function writeJson(filePath, data) {
@@ -731,6 +1073,7 @@ function ensureDatabase() {
   const seed = seedDatabaseFromJson();
   if (dbAdapter.mysqlEnabled()) {
     dbAdapter.ensureMysqlSeed(seed);
+    dbAdapter.ensureMysqlQuizQuestions(readQuizBank());
     return;
   }
   if (!fs.existsSync(dbPath)) writeJson(dbPath, seed);
@@ -761,16 +1104,225 @@ function sendJson(response, status, data) {
 function readRequestBody(request) {
   return new Promise((resolve, reject) => {
     let body = "";
+    let tooLarge = false;
     request.on("data", (chunk) => {
+      if (tooLarge) return;
       body += chunk;
-      if (body.length > 1024 * 1024) request.destroy();
+      if (body.length > 5 * 1024 * 1024) {
+        tooLarge = true;
+        const error = new Error("上传文件不能超过 5 MB");
+        error.statusCode = 413;
+        reject(error);
+      }
     });
-    request.on("end", () => resolve(body ? JSON.parse(body) : {}));
+    request.on("end", () => {
+      if (tooLarge) return;
+      try { resolve(body ? JSON.parse(body) : {}); }
+      catch (parseError) {
+        const error = new Error("请求内容不是有效的 JSON");
+        error.statusCode = 400;
+        reject(error);
+      }
+    });
     request.on("error", reject);
   });
 }
 
+function readRawRequestBody(request, maxSize = 12 * 1024 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    request.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maxSize) {
+        const error = new Error("上传文件不能超过 12 MB");
+        error.statusCode = 413;
+        reject(error);
+        request.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    request.on("end", () => resolve(Buffer.concat(chunks)));
+    request.on("error", reject);
+  });
+}
+
+function parseMultipartUpload(buffer, contentType) {
+  const match = String(contentType || "").match(/boundary=(?:"([^"]+)"|([^;\s]+))/i);
+  if (!match) throw new Error("上传请求缺少文件边界");
+  const boundary = Buffer.from("--" + (match[1] || match[2]));
+  let offset = 0;
+  while (offset < buffer.length) {
+    const start = buffer.indexOf(boundary, offset);
+    if (start < 0) break;
+    const headerStart = start + boundary.length + 2;
+    const headerEnd = buffer.indexOf(Buffer.from("\r\n\r\n"), headerStart);
+    if (headerEnd < 0) break;
+    const headers = buffer.slice(headerStart, headerEnd).toString("utf8");
+    const next = buffer.indexOf(boundary, headerEnd + 4);
+    if (next < 0) break;
+    const contentEnd = next >= 2 ? next - 2 : next;
+    const disposition = headers.match(/content-disposition:\s*form-data;[^\r\n]*name="([^"]+)"(?:;\s*filename="([^"]*)")?/i);
+    if (disposition && disposition[1] === "file" && disposition[2]) {
+      const type = (headers.match(/content-type:\s*([^\r\n]+)/i) || [])[1] || "";
+      return { fileName: path.basename(disposition[2]), mimeType: type.trim(), buffer: buffer.slice(headerEnd + 4, contentEnd) };
+    }
+    offset = next + boundary.length;
+  }
+  throw new Error("未找到要上传的题库文件");
+}
+
 async function handleApi(request, response, url) {
+  if (url.pathname === "/api/quiz-task/active" && request.method === "GET") {
+    if (!requireApiRole(request, response, "student")) return true;
+    const task = dbAdapter.mysqlEnabled() ? dbAdapter.readMysqlActiveQuizTask() : null;
+    sendJson(response, 200, { task });
+    return true;
+  }
+
+  if (url.pathname === "/api/quiz-attempts" && request.method === "POST") {
+    const session = requireApiRole(request, response, "student");
+    if (!session) return true;
+    if (!dbAdapter.mysqlEnabled()) { sendJson(response, 503, { error: "Quiz reporting requires MySQL" }); return true; }
+    const body = await readRequestBody(request);
+    const submitted = Array.isArray(body.answers) ? body.answers : [];
+    const questions = dbAdapter.readMysqlQuizQuestions();
+    const questionById = new Map(questions.map((item) => [item.id, item]));
+    const answers = submitted.map((item) => {
+      const question = questionById.get(String(item.questionId || ""));
+      const selectedAnswer = Number(item.selectedAnswer);
+      if (!question || !Number.isInteger(selectedAnswer) || selectedAnswer < 0 || selectedAnswer > 3) return null;
+      return { questionId: question.id, category: question.category, selectedAnswer, correctAnswer: question.answer, isCorrect: selectedAnswer === question.answer };
+    }).filter(Boolean);
+    if (!answers.length) { sendJson(response, 422, { error: "No valid quiz answers" }); return true; }
+    const activeTask = dbAdapter.readMysqlActiveQuizTask();
+    const taskId = activeTask && String(body.taskId || "") === activeTask.id ? activeTask.id : "";
+    const correctCount = answers.filter((item) => item.isCorrect).length;
+    const attempt = { id: "attempt-" + crypto.randomBytes(10).toString("hex"), taskId, studentFeishuUserId: session.feishuUserId, studentName: session.name || "Feishu user", score: Math.round(correctCount * 100 / answers.length), totalQuestions: answers.length, correctCount };
+    dbAdapter.insertMysqlQuizAttempt(attempt, answers);
+    sendJson(response, 201, { attempt: { ...attempt, taskId }, pass: activeTask ? attempt.score >= activeTask.passScore : null });
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-bank" && request.method === "GET") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    sendJson(response, 200, quizBankSummary(readQuizBankDocument()));
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-bank/versions" && request.method === "GET") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    const versions = dbAdapter.mysqlEnabled() ? dbAdapter.readMysqlQuizBankVersions() : [];
+    sendJson(response, 200, { versions });
+    return true;
+  }
+
+  const quizVersionDownload = url.pathname.match(/^\/api\/admin\/quiz-bank\/versions\/([^/]+)\/download$/);
+  if (quizVersionDownload && request.method === "GET") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    const version = dbAdapter.mysqlEnabled() ? dbAdapter.findMysqlQuizBankVersion(decodeURIComponent(quizVersionDownload[1])) : null;
+    if (!version) { sendJson(response, 404, { error: "题库历史记录不存在" }); return true; }
+    const filePath = path.resolve(quizUploadDir, version.storedFileName);
+    if (!filePath.startsWith(path.resolve(quizUploadDir) + path.sep) || !fs.existsSync(filePath)) { sendJson(response, 404, { error: "历史题库文件不存在" }); return true; }
+    const contentType = path.extname(version.originalFileName).toLowerCase() === ".docx" ? "application/vnd.openxmlformats-officedocument.wordprocessingml.document" : "text/markdown; charset=utf-8";
+    response.writeHead(200, { "Content-Type": contentType, "Content-Disposition": "attachment; filename*=UTF-8''" + encodeURIComponent(version.originalFileName) });
+    fs.createReadStream(filePath).pipe(response);
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-bank/import" && request.method === "POST") {
+    const session = requireApiRole(request, response, "admin");
+    if (!session) return true;
+    try {
+      const raw = await readRawRequestBody(request);
+      const upload = parseMultipartUpload(raw, request.headers["content-type"]);
+      const document = quizDocumentFromUpload(upload.fileName, upload.mimeType, upload.buffer);
+      persistQuizBank(document);
+      const versionId = archiveQuizBankUpload(upload, session, document.questions.length);
+      sendJson(response, 200, { ok: true, fileName: upload.fileName, versionId, ...quizBankSummary(document) });
+    } catch (error) {
+      sendJson(response, error.statusCode || 422, { error: error.message || "题库文件解析失败" });
+    }
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-bank" && request.method === "PUT") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    const body = await readRequestBody(request);
+    let document;
+    try {
+      document = normalizeUploadedQuizBank(body);
+    } catch (error) {
+      sendJson(response, 422, { error: error.message || "题库格式不正确" });
+      return true;
+    }
+    persistQuizBank(document);
+    sendJson(response, 200, { ok: true, ...quizBankSummary(document) });
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-overview" && request.method === "GET") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    if (!dbAdapter.mysqlEnabled()) { sendJson(response, 503, { error: "Quiz administration requires MySQL" }); return true; }
+    const tasks = dbAdapter.readMysqlQuizTasks();
+    const taskId = String(url.searchParams.get("taskId") || tasks.find((item) => item.status === "active")?.id || tasks[0]?.id || "");
+    const task = tasks.find((item) => item.id === taskId) || null;
+    const report = buildQuizReport(taskId);
+    report.passCount = task ? dbAdapter.readMysqlQuizAttempts(taskId).filter((item) => item.score >= task.passScore).length : 0;
+    const availableCategories = [...new Set(dbAdapter.readMysqlQuizQuestions().map((item) => item.category))].sort();
+    sendJson(response, 200, { tasks, task, report, availableCategories });
+    return true;
+  }
+
+  if (url.pathname === "/api/admin/quiz-tasks" && request.method === "POST") {
+    const session = requireApiRole(request, response, "admin");
+    if (!session) return true;
+    if (!dbAdapter.mysqlEnabled()) { sendJson(response, 503, { error: "Quiz administration requires MySQL" }); return true; }
+    const body = await readRequestBody(request);
+    const categories = Array.isArray(body.categories) ? body.categories.map((item) => String(item).trim()).filter(Boolean) : [];
+    const title = String(body.title || "").trim();
+    const targetScopes = Array.isArray(body.targetScopes) ? body.targetScopes.map((item) => String(item).trim()).filter(Boolean) : [];
+    const targetScope = targetScopes.length ? targetScopes.join("、") : String(body.targetScope || "").trim();
+    const requestedQuestionCount = Number(body.questionCount);
+    const questionCount = Number.isInteger(requestedQuestionCount) ? requestedQuestionCount : 0;
+    const passScore = Math.max(0, Math.min(100, Number(body.passScore) || 80));
+    if (!title || !targetScope || !categories.length) { sendJson(response, 422, { error: "任务名称、适用范围和安全类别不能为空" }); return true; }
+    if (questionCount < 5 || questionCount > 30) { sendJson(response, 422, { error: "题目数量须为 5 至 30 题之间的整数，无法发布当前学习任务。" }); return true; }
+    const availableQuestions = dbAdapter.readMysqlQuizQuestions().filter((item) => categories.includes(item.category));
+    if (availableQuestions.length < questionCount) {
+      const shortage = questionCount - availableQuestions.length;
+      sendJson(response, 422, { error: `所选学习主题当前仅有 ${availableQuestions.length} 道可用题目，少于任务要求的 ${questionCount} 道，还缺 ${shortage} 道，无法发布当前学习任务。` });
+      return true;
+    }
+    const task = dbAdapter.createMysqlQuizTask({
+      id: "task-" + crypto.randomBytes(8).toString("hex"), title, targetScope, expectedCount: Math.max(0, Number(body.expectedCount) || 0), categories, questionCount, passScore,
+      startsAt: body.startsAt ? String(body.startsAt).replace("T", " ") : "", endsAt: body.endsAt ? String(body.endsAt).replace("T", " ") : "", status: body.status === "paused" ? "paused" : "active", createdBy: session.feishuUserId
+    });
+    sendJson(response, 201, { task });
+    return true;
+  }
+
+  const adminTaskStatusMatch = url.pathname.match(/^\/api\/admin\/quiz-tasks\/([^/]+)\/status$/);
+  if (adminTaskStatusMatch && request.method === "PATCH") {
+    if (!requireApiRole(request, response, "admin")) return true;
+    if (!dbAdapter.mysqlEnabled()) { sendJson(response, 503, { error: "Quiz administration requires MySQL" }); return true; }
+    const body = await readRequestBody(request);
+    const status = ["active", "paused", "closed"].includes(body.status) ? body.status : "paused";
+    const task = dbAdapter.updateMysqlQuizTaskStatus(decodeURIComponent(adminTaskStatusMatch[1]), status);
+    if (!task) { sendJson(response, 404, { error: "Task not found" }); return true; }
+    sendJson(response, 200, { task });
+    return true;
+  }
+
+  if (url.pathname === "/api/quiz-questions" && request.method === "GET") {
+    if (!requireApiRole(request, response, "student")) return true;
+    const document = readQuizBankDocument();
+    const questions = dbAdapter.mysqlEnabled() ? dbAdapter.readMysqlQuizQuestions() : document.questions;
+    response.setHeader("Cache-Control", "no-store");
+    sendJson(response, 200, { version: document.version, questions });
+    return true;
+  }
 
   if (url.pathname === "/api/auth/me" && request.method === "GET") {
     const session = readSession(request);
@@ -786,7 +1338,7 @@ async function handleApi(request, response, url) {
 
   if (url.pathname === "/api/auth/login" && request.method === "GET") {
     const role = url.searchParams.get("role") || "reviewer";
-    const next = url.searchParams.get("next") || (role === "editor" ? "/editor.html" : role === "student" ? "/knowledge.html" : "/reviewer.html");
+    const next = url.searchParams.get("next") || (role === "editor" ? "/editor.html" : role === "student" ? "/knowledge.html" : role === "admin" ? "/admin.html" : "/reviewer.html");
     const loginUrl = authLoginUrl(role, next);
     if (!loginUrl) {
       sendAuthError(response, 503, "飞书登录未配置", "请在 .env 中填写 FEISHU_APP_ID、FEISHU_APP_SECRET、PUBLIC_BASE_URL，并在飞书开放平台配置回调地址。需要配置的回调地址是：" + feishuAuthConfig().redirectUri);
@@ -929,6 +1481,7 @@ async function handleApi(request, response, url) {
       "sourceUrl",
       "sourceDate",
       "desensitization",
+      "sanitizedSourceText",
       "hook",
       "escalation",
       "warningSigns",
@@ -977,6 +1530,7 @@ async function handleApi(request, response, url) {
       "sourceUrl",
       "sourceDate",
       "desensitization",
+      "sanitizedSourceText",
       "hook",
       "escalation",
       "warningSigns",
@@ -992,6 +1546,36 @@ async function handleApi(request, response, url) {
     return true;
   }
   const statusMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/status$/);
+  const discardMatch = url.pathname.match(/^\/api\/cases\/([^/]+)\/discard$/);
+  if (discardMatch && request.method === "PATCH") {
+    if (!requireApiRole(request, response, "editor")) return true;
+    const database = readDatabase();
+    const body = await readRequestBody(request);
+    const id = decodeURIComponent(discardMatch[1]);
+    const item = database.cases.find((caseItem) => caseItem.id === id);
+    if (!item) {
+      sendJson(response, 404, { error: "Case not found" });
+      return true;
+    }
+    if (!["draft", "revision"].includes(normalizeStatus(item.reviewStatus))) {
+      sendJson(response, 409, { error: "Only editable cases can be discarded" });
+      return true;
+    }
+    const discardReason = String(body.discardReason || "").trim();
+    if (!discardReason) {
+      sendJson(response, 422, { error: "A discard reason is required" });
+      return true;
+    }
+    item.reviewStatus = "discarded";
+    item.discardReason = discardReason;
+    item.reviewNote = discardReason;
+    item.discardedAt = new Date().toISOString();
+    item.updatedAt = new Date().toISOString().slice(0, 10);
+    database.updatedAt = item.updatedAt;
+    persistDatabase(database);
+    sendJson(response, 200, { case: item, database });
+    return true;
+  }
   if (statusMatch && request.method === "PATCH") {
     const body = await readRequestBody(request);
     const targetStatus = normalizeStatus(body.reviewStatus);
@@ -1069,6 +1653,7 @@ const server = http.createServer(async (request, response) => {
       }
       if (requiredPageRole === "student" && roleAllowed(session, "student")) {
         dbAdapter.upsertMysqlStudent(session.feishuUserId, session.name || "Feishu user");
+        dbAdapter.upsertMysqlStudentProfile({ feishuUserId: session.feishuUserId, name: session.name || "Feishu user" });
       }
       if (!roleAllowed(session, requiredPageRole)) {
         const loginUrl = authLoginUrl(requiredPageRole, requestedPath);
@@ -1090,17 +1675,21 @@ const server = http.createServer(async (request, response) => {
 
     sendFile(response, filePath);
   } catch (error) {
-    sendJson(response, 500, { error: "服务器处理失败" });
+    sendJson(response, error.statusCode || 500, { error: error.statusCode ? error.message : "服务器处理失败" });
   }
 });
 
 ensureDatabase();
-runDailyCollectionIfNeeded("startup").catch((error) => console.error("启动补采失败", error));
-const nextScheduledRun = scheduleMidnightCollection();
-const nextTodoReminderRun = scheduleNineTodoNotifications();
-server.listen(port, host, () => {
-  console.log(`南开安全卫士已启动：http://localhost:${port}`);
-  console.log(`后端案例库接口：http://localhost:${port}/api/cases`);
-  console.log(`下一次自动采集：${chinaDateTimeLabel(nextScheduledRun)}`);
-  console.log(`下一次待办提醒：${chinaDateTimeLabel(nextTodoReminderRun)}`);
-});
+if (require.main === module) {
+  runDailyCollectionIfNeeded("startup").catch((error) => console.error("启动补采失败", error));
+  const nextScheduledRun = scheduleMidnightCollection();
+  const nextTodoReminderRun = scheduleNineTodoNotifications();
+  server.listen(port, host, () => {
+    console.log(`南开安全卫士已启动：http://localhost:${port}`);
+    console.log(`后端案例库接口：http://localhost:${port}/api/cases`);
+    console.log(`下一次自动采集：${chinaDateTimeLabel(nextScheduledRun)}`);
+    console.log(`下一次待办提醒：${chinaDateTimeLabel(nextTodoReminderRun)}`);
+  });
+}
+
+module.exports = { runAutoCollection, readDatabase, persistDatabase, parseQuizText, quizDocumentFromUpload };

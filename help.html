@@ -3,8 +3,8 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>南开安全卫士 - 一键求助</title>
-    <link rel="stylesheet" href="styles.css" />
+    <title>南开大学校园安全事件上报</title>
+    <link rel="stylesheet" href="styles.css?v=20260922-feishu-report" />
   </head>
   <body data-default-tab="help">
     <header class="site-header">
@@ -20,7 +20,7 @@
     </header>
 
     <main>
-      <section class="hero help-hero">
+      <section class="hero help-hero" hidden aria-hidden="true">
         <div class="hero-copy">
           <p class="eyebrow">校园应急联系</p>
           <h1>一键求助</h1>
@@ -37,25 +37,74 @@
         <div class="workspace-head">
           <div>
             <p class="eyebrow">Emergency Help</p>
-            <h2>保卫处求助电话</h2>
+            <h2>校园安全事件上报</h2>
+            <p class="workspace-intro">南开大学校园安全事件分级受理页面</p>
           </div>
         </div>
         <section class="tab-panel active" id="help" aria-label="一键求助">
-          <div class="module-grid help-single">
-            <div class="help-panel">
-              <div class="phone-visual" aria-hidden="true"><span></span></div>
-              <strong>保卫处求助电话</strong>
-              <p>022-123456</p>
-              <div class="help-note">当前为测试号码，正式使用前请替换为学校确认后的值班电话。</div>
-              <button class="danger-button" type="button" id="callButton">一键求助</button>
-            </div>
+          <div class="system-notice" role="note">
+            <strong>受理说明</strong>
+            <span>特别紧急事件使用快速报警通道；紧急及一般事件请通过下方“校园安全隐患上报”统一登记。存在现实危险时，请同时通过值班电话联系保卫处。</span>
           </div>
+
+          <div class="emergency-layout">
+            <section class="critical-card" aria-labelledby="criticalTitle">
+              <div class="critical-copy">
+                <span class="level-badge level-critical">Ⅰ级　特别紧急</span>
+                <h3 id="criticalTitle">特别紧急事件快速报警通道</h3>
+                <p>适用于正在发生的人身危险、火灾、严重伤情或违法犯罪。无需预先填写信息，报警后再补充事件标签。</p>
+                <small>存在现实危险时，请优先确保人身安全，并同时拨打 110、119 或 120。</small>
+              </div>
+              <button class="critical-alarm-button" type="button" id="criticalAlarmButton">
+                <span aria-hidden="true">!</span>
+                立即报警
+              </button>
+            </section>
+
+            <section class="report-card embedded-report-card" aria-labelledby="reportTitle">
+              <div class="report-card-head">
+                <div>
+                  <span class="section-number">02</span>
+                  <div><h3 id="reportTitle">校园安全隐患上报</h3><p>紧急及一般事件统一通过保卫处隐患上报表登记，避免重复填写和多渠道流转。</p></div>
+                </div>
+                <a class="open-report-link" href="https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&amp;view=vewoiUIlNk" target="_blank" rel="noopener noreferrer">在飞书中打开</a>
+              </div>
+              <div class="report-embed-shell">
+                <iframe
+                  id="hazardReportFrame"
+                  title="南开校园安全隐患上报"
+                  src="https://nankai.feishu.cn/base/M7oVbqeKzaCQkSs6hTEcqyPHnR1?table=tblcFtuK2uXEpmhH&amp;view=vewoiUIlNk"
+                  loading="lazy"
+                  allow="clipboard-read; clipboard-write; geolocation"
+                  referrerpolicy="strict-origin-when-cross-origin"
+                ></iframe>
+              </div>
+              <p class="embed-help">若表单区域提示登录或无法显示，请点击右上角“在飞书中打开”。</p>
+            </section>
+          </div>
+
+          <section class="supplement-panel" id="supplementPanel" hidden aria-labelledby="supplementTitle">
+            <div>
+              <span class="success-mark" aria-hidden="true">✓</span>
+              <div><strong id="supplementTitle">特别紧急报警记录已生成</strong><p id="criticalRecordText">请在确保自身安全的前提下补充信息。</p></div>
+            </div>
+            <form id="supplementForm">
+              <label class="form-field"><span>事件类型（可稍后补充）</span><select id="criticalType"><option value="">暂不确定</option><option>人身安全</option><option>火灾险情</option><option>严重伤情</option><option>正在发生的违法犯罪</option><option>其他</option></select></label>
+              <label class="form-field"><span>现场补充说明</span><textarea id="criticalDescription" rows="2" maxlength="300" placeholder="例如：具体位置、人员情况、危险是否仍在持续"></textarea></label>
+              <button class="secondary-button" type="submit">保存补充信息</button>
+            </form>
+          </section>
+
+          <aside class="emergency-contact-strip">
+            <div><strong>保卫处值班电话</strong><span>022-123456　（正式上线前由保卫处确认）</span></div>
+            <button type="button" id="callButton">电话联系保卫处</button>
+          </aside>
         </section>
       </section>
     </main>
 
     <footer class="site-footer"><span>南开安全卫士</span><span>一键求助</span></footer>
     <div class="toast" id="toast" role="status" aria-live="polite"></div>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260922-feishu-report"></script>
   </body>
 </html>

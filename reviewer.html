@@ -267,6 +267,26 @@
         return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
       }
 
+      function hasArticleSourceUrl(value) {
+        try {
+          const path = decodeURIComponent(new URL(value).pathname || '/').replace(/\/+$/, '') || '/';
+          return path !== '/' && !/\/(?:list|listm|index|default|more)(?:\.[a-z0-9]+)?$/i.test(path) && /(?:info|content|article|detail|show|news|page|xxgk|c\d+a\d+|\/20\d{2}\/\d{2,}|\.s?html?$)/i.test(path);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function sourceVerificationMarkup(item) {
+        if (!hasArticleSourceUrl(item.sourceUrl)) return '<span class="admin-source-missing">待编辑员补充原文详情链接</span>';
+        return `<a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noreferrer">打开原文核验链接</a>`;
+      }
+
+      function sourceCaptureMarkup(item) {
+        if (!item.sourceOriginalTitle && !item.sourceExcerpt) return '';
+        const entry = item.sourceIndexUrl ? `<small>采集入口：<a href="${escapeHtml(item.sourceIndexUrl)}" target="_blank" rel="noreferrer">打开来源栏目</a></small>` : '';
+        return `<details class="admin-source-capture"><summary>采集原文信息</summary><strong>${escapeHtml(item.sourceOriginalTitle || item.title)}</strong><p>${escapeHtml(item.sourceExcerpt || '未获取到原文摘要，请打开原文核验链接。')}</p>${entry}</details>`;
+      }
+
       function checklistItem(text, checked) {
         return `<label class="${checked ? 'passed' : 'failed'}"><input type="checkbox" disabled ${checked ? 'checked' : ''} /> ${text}</label>`;
       }
@@ -362,7 +382,9 @@
           : `还有 ${failedItems.length} 项不满足：${failedItems.join('、')}。`;
         detail.innerHTML = `
           <div class="admin-detail-head"><span>${activeRole === 'editor' ? '编辑员' : '审核员'} · ${caseStatusLabel(item.reviewStatus)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.safetyType)} · ${escapeHtml(item.campusScene)} · ${escapeHtml(item.subtitle || '')}</p></div>
-          <dl class="admin-meta-grid"><div><dt>来源</dt><dd><a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.sourceName || item.sourceUrl)}</a></dd></div><div><dt>来源日期</dt><dd>${escapeHtml(item.sourceDate || '待补充')}</dd></div><div><dt>脱敏说明</dt><dd>${escapeHtml(item.desensitization || '待补充')}</dd></div></dl>
+          <dl class="admin-meta-grid"><div><dt>原文核验</dt><dd>${sourceVerificationMarkup(item)}</dd></div><div><dt>来源日期</dt><dd>${escapeHtml(item.sourceDate || '待补充')}</dd></div><div><dt>脱敏说明</dt><dd>${escapeHtml(item.desensitization || '待补充')}</dd></div></dl>
+          ${item.sanitizedSourceText ? `<div class="sanitized-source-preview"><strong>脱敏后案例材料</strong><p>${escapeHtml(item.sanitizedSourceText)}</p></div>` : ''}
+          ${sourceCaptureMarkup(item)}
           <div class="admin-story-preview"><strong>情景摘要</strong><p>${escapeHtml(item.hook)}</p><p>${escapeHtml(item.escalation)}</p></div>
           ${editorFieldsFor(item)}
           <div class="admin-checklist"><strong>${checklistTitle}</strong>${checklist.map(([text, checked]) => checklistItem(text, checked)).join('')}<p class="admin-rule-note ${allPassed ? 'passed' : 'failed'}">${ruleNote}</p></div>

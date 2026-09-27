@@ -55,7 +55,7 @@
       let activePublishedScene = '全部';
       let publishedSearchQuery = '';
 
-      const roleStatuses = { editor: ['draft', 'revision'], reviewer: ['review', 'approved'] };
+      const roleStatuses = { editor: ['draft', 'revision', 'review'], reviewer: ['review', 'approved'] };
       const statusText = { draft: '待完善', revision: '退回修改', review: '待审核', approved: '已发布' };
       const safetyTypes = ['全部', '反诈骗', '消防安全', '交通安全', '治安安全', '实验室安全', '网络安全'];
       const sceneOptionsByType = {
@@ -66,13 +66,16 @@
         '实验室安全': ['化学品使用', '仪器操作', '废液处理', '危险化学品存放', '气瓶使用', '高温高压设备', '激光设备', '生物样本处理', '实验室用电', '个人防护装备', '实验后清场', '试剂标签缺失', '通风橱使用', '应急喷淋洗眼'],
         '网络安全': ['钓鱼链接', '账号密码', '验证码泄露', '企业微信冒用', 'VPN软件风险', '统一身份认证仿冒', '邮件附件木马', '二维码扫码登录', '公共Wi-Fi风险', '网盘共享泄露', '社交账号被盗', '飞书群邀请核验', '浏览器插件风险', '个人信息授权', 'eduroam账号使用']
       };
+      const otherSceneOption = '其他';
 
       function normalizeReviewStatus(status) {
         return { pending: 'review', returned: 'revision' }[status] || status || 'draft';
       }
 
       function caseStatusLabel(status) {
-        return statusText[normalizeReviewStatus(status)] || status;
+        const normalized = normalizeReviewStatus(status);
+        if (activeRole === 'editor' && normalized === 'review') return '已提交';
+        return statusText[normalized] || status;
       }
 
       function statusCases(status) {
@@ -152,6 +155,17 @@
         updateSaveState(`已保存到后端：${new Date().toLocaleTimeString()}`);
       }
 
+      async function discardCase(id, discardReason) {
+        const response = await fetch(`/api/cases/${encodeURIComponent(id)}/discard`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ discardReason })
+        });
+        const result = await response.json().catch(() => ({}));
+        if (!response.ok) throw new Error(result.error || '案例弃用失败');
+        libraryState = result.database;
+      }
+
       async function patchCaseDetails(id, details) {
         const response = await fetch('/api/cases/' + encodeURIComponent(id), {
           method: 'PATCH',
@@ -185,7 +199,7 @@
         const messages = {
           draft: '编辑员在这里补齐来源、脱敏说明、风险信号和安全动作。整理完成后，提交给审核员。',
           revision: '审核员已退回。编辑员根据审核意见完善后，可以再次提交审核。',
-          review: '审核员在这里复核案例质量。确认无误后发布；不合格则退回给编辑员修改。',
+          review: activeRole === 'editor' ? '案例已提交给审核员，当前为只读状态；审核通过后发布，退回后将回到“退回修改”。' : '审核员在这里复核案例质量。确认无误后发布；不合格则退回给编辑员修改。',
           approved: '这条已经发布。审核员仍可撤回并退回给编辑员修改。'
         };
         return `<p class="admin-hint">${messages[normalizeReviewStatus(status)] || messages.draft}</p>`;
@@ -196,7 +210,7 @@
         const tabs = document.querySelector('#adminStatusTabs');
         const statuses = roleStatuses[activeRole];
         if (!statuses.includes(activeStatus)) activeStatus = statuses[0];
-        tabs.innerHTML = statuses.map((status) => `<button class="${status === activeStatus ? 'active' : ''}" type="button" data-status="${status}">${statusText[status]} <strong>${statusCases(status).length}</strong></button>`).join('');
+        tabs.innerHTML = statuses.map((status) => `<button class="${status === activeStatus ? 'active' : ''}" type="button" data-status="${status}">${caseStatusLabel(status)} <strong>${statusCases(status).length}</strong></button>`).join('');
         tabs.querySelectorAll('[data-status]').forEach((button) => {
           button.addEventListener('click', () => {
             activeStatus = button.dataset.status;
@@ -293,6 +307,26 @@
         return String(value || '').replace(/[&<>"']/g, (char) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[char]));
       }
 
+      function hasArticleSourceUrl(value) {
+        try {
+          const path = decodeURIComponent(new URL(value).pathname || '/').replace(/\/+$/, '') || '/';
+          return path !== '/' && !/\/(?:list|listm|index|default|more)(?:\.[a-z0-9]+)?$/i.test(path) && /(?:info|content|article|detail|show|news|page|xxgk|c\d+a\d+|\/20\d{2}\/\d{2,}|\.s?html?$)/i.test(path);
+        } catch (error) {
+          return false;
+        }
+      }
+
+      function sourceVerificationMarkup(item) {
+        if (!hasArticleSourceUrl(item.sourceUrl)) return '<span class="admin-source-missing">待编辑员补充原文详情链接</span>';
+        return `<a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noreferrer">打开原文核验链接</a>`;
+      }
+
+      function sourceCaptureMarkup(item) {
+        if (!item.sourceOriginalTitle && !item.sourceExcerpt) return '';
+        const entry = item.sourceIndexUrl ? `<small>采集入口：<a href="${escapeHtml(item.sourceIndexUrl)}" target="_blank" rel="noreferrer">打开来源栏目</a></small>` : '';
+        return `<details class="admin-source-capture"><summary>采集原文信息</summary><strong>${escapeHtml(item.sourceOriginalTitle || item.title)}</strong><p>${escapeHtml(item.sourceExcerpt || '未获取到原文摘要，请打开原文核验链接。')}</p>${entry}</details>`;
+      }
+
       function checklistItem(text, checked) {
         return `<label class="${checked ? 'passed' : 'failed'}"><input type="checkbox" disabled ${checked ? 'checked' : ''} /> ${text}</label>`;
       }
@@ -313,10 +347,13 @@
         return options.map((option) => `<option value="${escapeHtml(option)}" ${option === selectedValue ? 'selected' : ''}>${escapeHtml(option)}</option>`).join('');
       }
 
-      function sceneOptionsForType(type, currentScene) {
+      function sceneOptionsForType(type) {
         const options = sceneOptionsByType[type] || [];
-        const merged = currentScene && currentScene !== '待分类情景' && !options.includes(currentScene) ? [...options, currentScene] : options;
-        return merged;
+        return [...options, otherSceneOption];
+      }
+
+      function isCustomScene(type, scene) {
+        return Boolean(scene && scene !== '待分类情景' && !(sceneOptionsByType[type] || []).includes(scene));
       }
 
       function isCleanDesensitization(value) {
@@ -328,25 +365,54 @@
         return !items.some((item) => /需进一步|需完成|补充|待/.test(item));
       }
 
+      function isSubstantiveNarrative(value) {
+        const text = String(value || '').trim();
+        return Boolean(text) && !/(待补充|待完善|官方来源提到|需由编辑员|暂无)/.test(text);
+      }
+
+      function narrativeIssues(item) {
+        const issues = [];
+        if (!item.safetyType) issues.push('请选择安全类型');
+        if (!isSpecificScene(item.campusScene)) issues.push('请选择具体校园情景');
+        if (!isSubstantiveNarrative(item.hook)) issues.push('情景开端需写清人物、校园场景和首个风险信号');
+        if (!isSubstantiveNarrative(item.escalation)) issues.push('风险升级需写清继续操作后的具体后果');
+        return issues;
+      }
+
       function editorFieldsFor(item) {
-        if (activeRole !== 'editor') return '';
+        if (activeRole !== 'editor' || normalizeReviewStatus(item.reviewStatus) === 'review') return '';
+        const customScene = isCustomScene(item.safetyType, item.campusScene) ? item.campusScene : '';
+        const selectedScene = customScene ? otherSceneOption : item.campusScene;
         return `
           <form class="admin-edit-form" id="caseEditForm">
             <strong>整理内容</strong>
+            <section class="editor-writing-guide" aria-label="案例整理标准">
+              <h4>一条可提交案例的写法</h4>
+              <p>以官网原文为依据，改写为可学习的校园情景；不虚构事实、不保留可识别个人信息，也不把原文整段复制进案例。</p>
+              <ol><li><b>情景开端：</b>交代谁、在什么校园情境中、收到了什么信息或遇到什么现象。</li><li><b>风险升级：</b>说明若继续操作，风险如何从“可疑”变成实际损失或安全后果。</li><li><b>脱敏说明：</b>明确写出删去了哪些身份、地点、账号、金额或联系方式。</li><li><b>风险信号：</b>每行一条客观异常线索，至少 3 条。</li><li><b>安全动作：</b>每行一条学生可立即执行的动作，至少 3 条，并写明官方核验或求助渠道。</li></ol>
+            </section>
             <div class="admin-edit-grid">
-              <label>安全类型<select name="safetyType" id="safetyTypeSelect"><option value="">请选择安全类型</option>${optionTags(safetyTypes.filter((type) => type !== '全部'), item.safetyType)}</select></label>
-              <label>校园情景<select name="campusScene" id="campusSceneSelect"><option value="">请选择校园情景</option>${optionTags(sceneOptionsForType(item.safetyType, item.campusScene), item.campusScene)}</select></label>
+              <label>安全类型<select name="safetyType" id="safetyTypeSelect"><option value="">请选择安全类型</option>${optionTags(safetyTypes.filter((type) => type !== '全部'), item.safetyType)}</select><small class="field-status" data-editor-status="safetyType"></small></label>
+              <label>校园情景<select name="campusScene" id="campusSceneSelect"><option value="">请选择校园情景</option>${optionTags(sceneOptionsForType(item.safetyType), selectedScene)}</select><small class="field-status" data-editor-status="campusScene"></small></label>
+              <label id="customCampusSceneField" ${customScene ? '' : 'hidden'}>其他校园情景<input name="customCampusScene" id="customCampusSceneInput" value="${escapeHtml(customScene)}" placeholder="请输入具体校园情景" /></label>
               <label>来源名称<input name="sourceName" value="${escapeHtml(item.sourceName)}" /></label>
               <label>来源日期<input name="sourceDate" value="${escapeHtml(item.sourceDate)}" placeholder="YYYY-MM-DD" /></label>
-              <label>来源链接<input name="sourceUrl" value="${escapeHtml(item.sourceUrl)}" /></label>
+              <label>原文核验链接<input name="sourceUrl" value="${escapeHtml(item.sourceUrl)}" placeholder="请填写可直接打开的通知或文章详情页" /></label>
               <label>副标题<input name="subtitle" value="${escapeHtml(item.subtitle)}" /></label>
             </div>
             <label>案例标题<textarea name="title" rows="2">${escapeHtml(item.title)}</textarea></label>
-            <label>情景开端<textarea name="hook" rows="3" placeholder="把官网通知改写成学生会遇到的具体开端。">${escapeHtml(item.hook)}</textarea></label>
-            <label>风险升级<textarea name="escalation" rows="3" placeholder="说明如果继续操作，风险如何扩大。">${escapeHtml(item.escalation)}</textarea></label>
-            <label>脱敏说明<textarea name="desensitization" rows="3">${escapeHtml(item.desensitization)}</textarea></label>
-            <label>风险信号<textarea name="warningSigns" rows="4" placeholder="每行一条，至少三条，不要保留‘需补充’模板句。">${escapeHtml(listText(item.warningSigns))}</textarea></label>
-            <label>安全动作<textarea name="safeActions" rows="4" placeholder="每行一条，至少三条，写成学生能执行的动作。">${escapeHtml(listText(item.safeActions))}</textarea></label>
+            <section class="source-redaction-editor" aria-label="原文敏感信息处理">
+              <div><strong>脱敏后案例材料</strong><button class="text-action-button" type="button" id="loadSourceExcerptButton">载入采集原文摘要</button></div>
+              <p>上方“采集原文信息”只用于核验，不可修改。请将原文摘要载入下方后，直接删除或泛化姓名、学院/楼宇等具体地点、账号、电话、邮箱、金额和交易编号；只保留与风险过程有关的事实。</p>
+              <textarea name="sanitizedSourceText" id="sanitizedSourceText" rows="6" placeholder="在此编辑脱敏后的案例材料。例如将“张某在某学院 A 楼 302 收到手机号 138… 的转账要求”改为“某同学在校内收到陌生转账要求”。">${escapeHtml(item.sanitizedSourceText || '')}</textarea>
+              <small>这份材料是后续编写“情景开端”和“风险升级”的依据，不会直接向学生展示。</small>
+            </section>
+            <label>情景开端<textarea name="hook" rows="3" placeholder="示例：学生在飞书群收到“账号异常”私信，对方要求点击链接完成二次认证。">${escapeHtml(item.hook)}</textarea><small>写“人物 + 校园场景 + 首个风险信号”；不要直接复制整段官网通知。</small><small class="field-status" data-editor-status="hook"></small></label>
+            <label>风险升级<textarea name="escalation" rows="3" placeholder="示例：若按对方要求输入账号、密码和验证码，账号可能被接管并用于冒充本人联系同学。">${escapeHtml(item.escalation)}</textarea><small>写“继续操作后会发生什么”，要有明确后果。</small><small class="field-status" data-editor-status="escalation"></small></label>
+            <label>脱敏说明<textarea name="desensitization" rows="3" placeholder="示例：已删除原文中的姓名、学院、手机号、账号、具体地点和金额，仅保留风险过程。">${escapeHtml(item.desensitization)}</textarea><small>必须说明已删除或替换的具体信息，不能只写“已脱敏”。</small></label>
+            <label>风险信号<textarea name="warningSigns" rows="4" placeholder="每行一条，例如：&#10;要求通过非官方链接登录&#10;以账号停用制造紧迫感&#10;索要密码或验证码">${escapeHtml(listText(item.warningSigns))}</textarea><small>至少 3 条，每条只写一个可观察到的异常线索，不写“提高警惕”这类结论。</small></label>
+            <label>安全动作<textarea name="safeActions" rows="4" placeholder="每行一条，例如：&#10;不点击陌生链接&#10;通过学校官网入口核验&#10;保留截图并联系网信办或保卫处">${escapeHtml(listText(item.safeActions))}</textarea><small>至少 3 条，使用动作动词开头，写清“怎么做”和“向谁核验/求助”。</small></label>
+            <div class="editor-live-check" id="editorLiveCheck" aria-live="polite"></div>
             <button class="secondary-button" type="submit">保存整理内容</button>
           </form>
         `;
@@ -356,13 +422,17 @@
         const status = normalizeReviewStatus(item.reviewStatus);
         const disabledSubmit = allPassed ? '' : 'disabled aria-disabled="true"';
         const disabledReturn = allPassed ? 'disabled aria-disabled="true"' : '';
-        if (activeRole === 'editor') return `<button class="primary-link-button" type="button" id="submitCaseButton">保存并提交给审核员</button>`;
+        if (activeRole === 'editor') {
+          if (status === 'review') return '';
+          return `<button class="secondary-button" type="button" id="discardCaseButton">弃用该案例</button><button class="primary-link-button" type="button" id="submitCaseButton">保存并提交给审核员</button>`;
+        }
         if (status === 'approved') return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>撤回并退回编辑员</button>`;
         return `<button class="secondary-button" type="button" id="reviseCaseButton" ${disabledReturn}>退回编辑员修改</button><button class="primary-link-button" type="button" id="approveCaseButton" ${disabledSubmit}>审核通过并发布</button>`;
       }
 
       function bindActionButtons(item, allPassed) {
         document.querySelector('#submitCaseButton')?.addEventListener('click', () => { submitEditedCase(item); });
+        document.querySelector('#discardCaseButton')?.addEventListener('click', () => { discardEditedCase(item); });
         document.querySelector('#reviseCaseButton')?.addEventListener('click', () => { if (!allPassed) updateCaseStatus(item.id, 'revision', 'editor'); });
         document.querySelector('#approveCaseButton')?.addEventListener('click', () => { if (allPassed) updateCaseStatus(item.id, 'approved', 'reviewer'); });
       }
@@ -375,9 +445,9 @@
         }
         const checklistTitle = activeRole === 'editor' ? '编辑员整理项' : '审核员检查项';
         const checklist = [
-          ['来源是学校或权威官方渠道', /^https:\/\//.test(item.sourceUrl || '')],
-          ['已完成信息脱敏说明', isCleanDesensitization(item.desensitization)],
-          ['安全类型和具体校园情景清楚', Boolean(item.safetyType) && isSpecificScene(item.campusScene)],
+          ['原文链接可直接核验', hasArticleSourceUrl(item.sourceUrl)],
+          ['脱敏材料和说明完整', Boolean(String(item.sanitizedSourceText || '').trim()) && isCleanDesensitization(item.desensitization)],
+          ['校园情景和风险过程完整', narrativeIssues(item).length === 0],
           ['风险信号不少于 3 条且不是模板句', isUsefulList(item.warningSigns)],
           ['安全动作不少于 3 条且可执行', isUsefulList(item.safeActions)]
         ];
@@ -388,12 +458,13 @@
           : `还有 ${failedItems.length} 项不满足：${failedItems.join('、')}。`;
         detail.innerHTML = `
           <div class="admin-detail-head"><span>${activeRole === 'editor' ? '编辑员' : '审核员'} · ${caseStatusLabel(item.reviewStatus)}</span><h3>${escapeHtml(item.title)}</h3><p>${escapeHtml(item.safetyType)} · ${escapeHtml(item.campusScene)} · ${escapeHtml(item.subtitle || '')}</p></div>
-          <dl class="admin-meta-grid"><div><dt>来源</dt><dd><a href="${escapeHtml(item.sourceUrl)}" target="_blank" rel="noreferrer">${escapeHtml(item.sourceName || item.sourceUrl)}</a></dd></div><div><dt>来源日期</dt><dd>${escapeHtml(item.sourceDate || '待补充')}</dd></div><div><dt>脱敏说明</dt><dd>${escapeHtml(item.desensitization || '待补充')}</dd></div></dl>
+          <dl class="admin-meta-grid"><div><dt>原文核验</dt><dd>${sourceVerificationMarkup(item)}</dd></div><div><dt>来源日期</dt><dd>${escapeHtml(item.sourceDate || '待补充')}</dd></div><div><dt>脱敏说明</dt><dd>${escapeHtml(item.desensitization || '待补充')}</dd></div></dl>
+          ${sourceCaptureMarkup(item)}
           <div class="admin-story-preview"><strong>情景摘要</strong><p>${escapeHtml(item.hook)}</p><p>${escapeHtml(item.escalation)}</p></div>
           ${editorFieldsFor(item)}
           <div class="admin-checklist"><strong>${checklistTitle}</strong>${checklist.map(([text, checked]) => checklistItem(text, checked)).join('')}<p class="admin-rule-note ${allPassed ? 'passed' : 'failed'}">${ruleNote}</p></div>
           <div class="admin-chip-group">${(item.warningSigns || []).map((sign) => `<span>${escapeHtml(sign)}</span>`).join('')}</div>
-          <label class="admin-note-label">${activeRole === 'editor' ? '内部备注（可选，不是正文编辑区）' : '审核意见 / 退回原因'}<textarea id="reviewNote" rows="3" placeholder="编辑员：可记录整理依据；审核员：退回时写明哪一项不满足。正式案例内容请在上方字段中编辑。">${escapeHtml(item.reviewNote || '')}</textarea></label>
+          <label class="admin-note-label">${activeRole === 'editor' ? '编辑备注 / 弃用原因' : '审核意见 / 退回原因'}<textarea id="reviewNote" rows="3" placeholder="编辑员：可记录整理依据；如不适合作为学习案例，请说明弃用原因。审核员：退回时写明哪一项不满足。">${escapeHtml(item.reviewNote || '')}</textarea></label>
           <div class="admin-detail-actions">${actionButtonsFor(item, allPassed)}</div>${statusHint(item.reviewStatus)}
         `;
         bindEditorSceneSelectors(item);
@@ -405,18 +476,29 @@
         const typeSelect = document.querySelector('#safetyTypeSelect');
         const sceneSelect = document.querySelector('#campusSceneSelect');
         if (!typeSelect || !sceneSelect) return;
+        const customField = document.querySelector('#customCampusSceneField');
+        const customInput = document.querySelector('#customCampusSceneInput');
+        const syncCustomSceneField = () => {
+          const showCustom = sceneSelect.value === otherSceneOption;
+          if (customField) customField.hidden = !showCustom;
+          if (!showCustom && customInput) customInput.value = '';
+          if (showCustom) customInput?.focus();
+        };
         typeSelect.addEventListener('change', () => {
-          const options = sceneOptionsForType(typeSelect.value, '');
+          const options = sceneOptionsForType(typeSelect.value);
           sceneSelect.innerHTML = `<option value="">请选择校园情景</option>${optionTags(options, '')}`;
+          syncCustomSceneField();
         });
+        sceneSelect.addEventListener('change', syncCustomSceneField);
       }
 
       function editorDetailsFromForm(form) {
         const formData = new FormData(form);
         const value = (name) => String(formData.get(name) || '').trim();
+        const selectedScene = value('campusScene');
         return {
           safetyType: value('safetyType'),
-          campusScene: value('campusScene'),
+          campusScene: selectedScene === otherSceneOption ? value('customCampusScene') : selectedScene,
           sourceName: value('sourceName'),
           sourceUrl: value('sourceUrl'),
           sourceDate: value('sourceDate'),
@@ -425,14 +507,48 @@
           hook: value('hook'),
           escalation: value('escalation'),
           desensitization: value('desensitization'),
+          sanitizedSourceText: value('sanitizedSourceText'),
           warningSigns: splitList(formData.get('warningSigns')),
           safeActions: splitList(formData.get('safeActions'))
         };
       }
 
+      function renderEditorLiveCheck(form) {
+        const panel = document.querySelector('#editorLiveCheck');
+        if (!panel) return;
+        const details = editorDetailsFromForm(form);
+        const issues = narrativeIssues(details);
+        const fieldStates = {
+          safetyType: details.safetyType ? '已选择安全类型。' : '待完善：请选择安全类型。',
+          campusScene: isSpecificScene(details.campusScene) ? '已选择具体校园情景。' : '待完善：请选择具体校园情景，或选择“其他”后填写。',
+          hook: isSubstantiveNarrative(details.hook) ? '已满足：人物、校园场景和首个风险信号已写明。' : '待完善：请交代人物、校园场景和最初出现的风险信号。',
+          escalation: isSubstantiveNarrative(details.escalation) ? '已满足：风险后果已写明。' : '待完善：请说明继续操作后会造成什么具体后果。'
+        };
+        Object.entries(fieldStates).forEach(([name, text]) => {
+          const status = form.querySelector(`[data-editor-status="${name}"]`);
+          if (!status) return;
+          const valid = name === 'safetyType' ? Boolean(details.safetyType)
+            : name === 'campusScene' ? isSpecificScene(details.campusScene)
+              : isSubstantiveNarrative(details[name]);
+          status.textContent = text;
+          status.classList.toggle('passed', valid);
+          status.classList.toggle('failed', !valid);
+        });
+        const checks = [
+          ['原文链接可直接核验', hasArticleSourceUrl(details.sourceUrl)],
+          ['校园情景和风险过程完整', issues.length === 0],
+          ['脱敏材料和说明完整', Boolean(details.sanitizedSourceText) && isCleanDesensitization(details.desensitization)],
+          ['风险信号至少 3 条', isUsefulList(details.warningSigns)],
+          ['安全动作至少 3 条且可执行', isUsefulList(details.safeActions)]
+        ];
+        const passed = checks.filter(([, valid]) => valid).length;
+        const narrativeHint = issues.length ? `<p>“校园情景和风险过程”待完善：${issues.join('；')}。</p>` : '<p class="passed">校园情景和风险过程已完整。</p>';
+        panel.innerHTML = `<strong>整理完成度 ${passed} / ${checks.length}</strong><div>${checks.map(([label, valid]) => `<span class="${valid ? 'passed' : 'failed'}">${valid ? '已满足' : '待完善'}：${label}</span>`).join('')}</div>${narrativeHint}`;
+      }
+
       function caseReadyFailures(item) {
         const checks = [
-          ['来源链接需要使用 https 官网或权威来源', /^https:\/\//.test(item.sourceUrl || '')],
+          ['已填写可直接打开的原文详情链接', hasArticleSourceUrl(item.sourceUrl)],
           ['需要填写明确的脱敏说明', isCleanDesensitization(item.desensitization)],
           ['需要选择安全类型和具体校园情景', Boolean(item.safetyType) && isSpecificScene(item.campusScene)],
           ['风险信号至少 3 条，且不能是模板句', isUsefulList(item.warningSigns)],
@@ -452,6 +568,24 @@
       function bindEditorForm(item) {
         const form = document.querySelector('#caseEditForm');
         if (!form) return;
+        const loadSourceButton = document.querySelector('#loadSourceExcerptButton');
+        const sanitizedSourceText = document.querySelector('#sanitizedSourceText');
+        loadSourceButton?.addEventListener('click', () => {
+          if (!item.sourceExcerpt) {
+            updateSaveState('当前案例没有可载入的原文摘要，请通过原文核验链接查看后手动整理。');
+            return;
+          }
+          if (sanitizedSourceText.value.trim() && !window.confirm('载入原文摘要会覆盖当前脱敏材料，是否继续？')) return;
+          sanitizedSourceText.value = item.sourceExcerpt;
+          sanitizedSourceText.focus();
+          renderEditorLiveCheck(form);
+          updateSaveState('已载入原文摘要，请在“脱敏后案例材料”中删除或泛化敏感信息后保存。');
+        });
+        form.querySelectorAll('input, select, textarea').forEach((field) => {
+          field.addEventListener('input', () => renderEditorLiveCheck(form));
+          field.addEventListener('change', () => renderEditorLiveCheck(form));
+        });
+        renderEditorLiveCheck(form);
         form.addEventListener('submit', async (event) => {
           event.preventDefault();
           try {
@@ -492,6 +626,39 @@
           if (button) {
             button.disabled = false;
             button.textContent = '保存并提交给审核员';
+          }
+        }
+      }
+
+      async function discardEditedCase(item) {
+        const noteBox = document.querySelector('#reviewNote');
+        const discardReason = String(noteBox?.value || '').trim();
+        if (!discardReason) {
+          updateSaveState('请先在“编辑备注 / 弃用原因”中说明弃用原因。');
+          noteBox?.focus();
+          return;
+        }
+        if (!window.confirm('确认弃用这条案例吗？弃用后不会进入审核或学生端，但会保留在数据库中。')) return;
+        const button = document.querySelector('#discardCaseButton');
+        try {
+          if (button) {
+            button.disabled = true;
+            button.textContent = '正在弃用...';
+          }
+          updateSaveState('正在将案例标记为已弃用...');
+          await discardCase(item.id, discardReason);
+          activeStatus = 'draft';
+          activeCaseId = '';
+          renderStatusTabs();
+          renderReviewList();
+          renderSources();
+          refreshCollectionStatus();
+          updateSaveState('案例已弃用，不会进入审核或学生端。');
+        } catch (error) {
+          updateSaveState(error.message || '案例弃用失败，请稍后重试。');
+          if (button) {
+            button.disabled = false;
+            button.textContent = '弃用该案例';
           }
         }
       }
